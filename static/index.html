@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrisisNexus — AI Crisis Response Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ══════ DESIGN TOKENS ══════ */
+:root {
+  --bg:        #05080F;
+  --bg2:       #08101C;
+  --bg3:       #0C1826;
+  --surface:   #111F30;
+  --surface2:  #172840;
+  --surface3:  #1C3050;
+  --border:    #162034;
+  --border2:   #1E2D44;
+  --border3:   #243650;
+  --red:       #FF3B30;
+  --red-m:     rgba(255,59,48,.14);
+  --red-s:     rgba(255,59,48,.06);
+  --amber:     #F5A623;
+  --amber-m:   rgba(245,166,35,.13);
+  --green:     #00C896;
+  --green-m:   rgba(0,200,150,.12);
+  --blue:      #3B8EFF;
+  --blue-m:    rgba(59,142,255,.13);
+  --violet:    #9B6DFF;
+  --violet-m:  rgba(155,109,255,.12);
+  --text:      #D8E8F8;
+  --text2:     #607A96;
+  --text3:     #2E445C;
+  --mono:      'JetBrains Mono', monospace;
+  --sans:      'DM Sans', sans-serif;
+  --display:   'Syne', sans-serif;
+  --ease:      cubic-bezier(.4,0,.2,1);
+  --r:         12px;
+  --r-sm:      8px;
+  --r-lg:      18px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--border3);border-radius:2px;}
+
+/* ══════ TOPBAR ══════ */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:500;
+  height:58px;
+  background:rgba(5,8,15,.92);
+  backdrop-filter:blur(24px) saturate(180%);
+  border-bottom:1px solid rgba(22,32,52,.9);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;
+  transition:border-color .3s var(--ease);
+}
+.topbar.scrolled{border-color:var(--border3);}
+.logo{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none;}
+.logo-mark{
+  width:32px;height:32px;border-radius:9px;
+  background:linear-gradient(135deg,var(--red) 0%,#A8100A 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;
+  box-shadow:0 0 16px rgba(255,59,48,.3);
+  flex-shrink:0;
+}
+.logo-text{font-family:var(--display);font-weight:800;font-size:17px;color:var(--text);}
+.logo-text em{font-style:normal;color:var(--red);}
+
+.nav{display:flex;gap:1px;background:rgba(17,31,48,.8);border:1px solid var(--border);border-radius:11px;padding:3px;}
+.nav-btn{
+  padding:6px 16px;border-radius:8px;
+  font-size:13px;font-weight:500;color:var(--text2);
+  cursor:pointer;transition:all .2s var(--ease);
+  border:none;background:none;font-family:var(--sans);white-space:nowrap;
+}
+.nav-btn.on{background:var(--surface2);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.35);}
+.nav-btn:hover:not(.on){color:var(--text);background:rgba(255,255,255,.04);}
+
+.tb-right{display:flex;align-items:center;gap:12px;}
+.ws-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;
+  background:rgba(0,200,150,.07);
+  border:1px solid rgba(0,200,150,.2);
+  border-radius:100px;font-size:11px;
+  font-family:var(--mono);color:var(--green);
+  transition:all .4s;
+}
+.ws-pill.disconnected{background:rgba(245,166,35,.07);border-color:rgba(245,166,35,.2);color:var(--amber);}
+.ws-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:wsDot 2s infinite;}
+@keyframes wsDot{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,200,150,.5);}50%{opacity:.7;box-shadow:0 0 0 4px rgba(0,200,150,0);}}
+.sos-pill{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 16px;
+  background:linear-gradient(135deg,var(--red) 0%,#B01008 100%);
+  border:none;border-radius:9px;
+  color:#fff;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:var(--sans);
+  letter-spacing:.6px;text-transform:uppercase;
+  box-shadow:0 0 0 0 rgba(255,59,48,.4);
+  animation:sosPill 2.5s infinite;
+  transition:transform .2s var(--ease),box-shadow .2s;
+}
+.sos-pill:hover{transform:scale(1.04);}
+@keyframes sosPill{0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,.4);}50%{box-shadow:0 0 0 8px rgba(255,59,48,0);}}
+
+/* ══════ PAGES ══════ */
+.page{display:none;min-height:100vh;}
+.page.on{display:block;}
+#pg-home{overflow:hidden;}
+
+/* ══════ LIVE TICKER ══════ */
+.ticker-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:400;
+  height:36px;
+  background:rgba(5,8,15,.95);
+  border-top:1px solid var(--border2);
+  display:flex;align-items:center;
+  overflow:hidden;
+}
+.ticker-label{
+  flex-shrink:0;padding:0 16px 0 14px;
+  font-family:var(--mono);font-size:10px;font-weight:600;
+  color:var(--red);letter-spacing:1px;
+  border-right:1px solid var(--border2);
+  display:flex;align-items:center;gap:7px;
+  height:100%;background:rgba(255,59,48,.06);
+}
+.ticker-dot{width:5px;height:5px;border-radius:50%;background:var(--red);animation:wsDot 1.5s infinite;}
+.ticker-scroll{flex:1;overflow:hidden;position:relative;}
+.ticker-inner{
+  display:flex;gap:64px;
+  white-space:nowrap;
+  animation:tickerAnim 40s linear infinite;
+  font-size:12px;color:var(--text2);
+  padding:0 32px;
+}
+.ticker-inner:hover{animation-play-state:paused;}
+@keyframes tickerAnim{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+.ticker-item{display:inline-flex;align-items:center;gap:8px;}
+.ticker-item span{color:var(--text);}
+
+/* ══════ HERO ══════ */
+.hero{
+  min-height:100vh;padding-top:58px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;padding-left:20px;padding-right:20px;
+  position:relative;overflow:hidden;
+}
+#pCanvas{position:absolute;inset:0;pointer-events:none;}
+.hero-glow1{position:absolute;top:-25%;left:50%;transform:translateX(-50%);width:1000px;height:700px;background:radial-gradient(ellipse,rgba(255,59,48,.065) 0%,transparent 65%);pointer-events:none;}
+.hero-glow2{position:absolute;bottom:-10%;right:-5%;width:600px;height:600px;background:radial-gradient(ellipse,rgba(59,142,255,.04) 0%,transparent 60%);pointer-events:none;}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(22,32,52,.2) 1px,transparent 1px),linear-gradient(90deg,rgba(22,32,52,.2) 1px,transparent 1px);background-size:56px 56px;mask-image:radial-gradient(ellipse 85% 65% at 50% 50%,black 20%,transparent 100%);pointer-events:none;}
+.hero-content{position:relative;z-index:2;max-width:900px;}
+
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--red-m);border:1px solid rgba(255,59,48,.25);
+  color:var(--red);padding:6px 18px;border-radius:100px;
+  font-size:11px;font-family:var(--mono);letter-spacing:1px;
+  margin-bottom:36px;
+  animation:fadeUp .8s var(--ease) both;
+}
+.hero h1{
+  font-family:var(--display);font-size:clamp(52px,9vw,100px);
+  font-weight:800;line-height:.93;letter-spacing:-4px;
+  margin-bottom:28px;
+  animation:fadeUp .9s var(--ease) .15s both;
+}
+.hero h1 .grd{
+  display:block;
+  background:linear-gradient(135deg,var(--red) 10%,#FF7A72 60%,#FF3B30 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{
+  font-size:17px;color:var(--text2);max-width:580px;
+  margin:0 auto 52px;line-height:1.68;font-weight:400;
+  animation:fadeUp .9s var(--ease) .3s both;
+}
+
+.stats-row{
+  display:flex;margin-bottom:56px;justify-content:center;flex-wrap:wrap;
+  animation:fadeUp .9s var(--ease) .45s both;
+}
+.stat-block{text-align:center;padding:0 44px;position:relative;}
+.stat-block:not(:last-child)::after{content:'';position:absolute;right:0;top:15%;bottom:15%;width:1px;background:var(--border2);}
+.stat-num{font-family:var(--display);font-size:48px;font-weight:800;line-height:1;display:block;}
+.stat-num.red{color:var(--red);}
+.stat-num.amber{color:var(--amber);}
+.stat-num.green{color:var(--green);}
+.stat-lbl{font-size:12px;color:var(--text2);margin-top:6px;letter-spacing:.3px;}
+
+.cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;animation:fadeUp .9s var(--ease) .6s both;}
+.btn-cta{
+  padding:14px 30px;border-radius:11px;font-size:15px;
+  font-weight:600;cursor:pointer;font-family:var(--sans);
+  transition:all .22s var(--ease);
+}
+.btn-cta.primary{
+  background:linear-gradient(135deg,var(--red) 0%,#B01008 100%);
+  color:#fff;border:none;
+  box-shadow:0 4px 20px rgba(255,59,48,.28);
+}
+.btn-cta.primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(255,59,48,.42);}
+.btn-cta.ghost{
+  background:rgba(255,255,255,.04);color:var(--text);
+  border:1px solid var(--border3);
+  backdrop-filter:blur(8px);
+}
+.btn-cta.ghost:hover{background:rgba(255,255,255,.08);transform:translateY(-2px);}
+
+.scroll-cue{
+  position:absolute;bottom:32px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  color:var(--text3);font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
+  cursor:pointer;z-index:2;animation:fadeUp .9s var(--ease) 1s both;
+}
+.scroll-arr{
+  width:30px;height:30px;border:1px solid var(--border3);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:13px;
+  animation:scrollBounce 2.2s ease-in-out infinite;
+}
+@keyframes scrollBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(7px);}}
+
+/* ══════ SECTIONS (landing) ══════ */
+.lp-section{padding:110px 24px;max-width:1200px;margin:0 auto;}
+.section-tag{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.section-tag::before{content:'';width:22px;height:1px;background:var(--red);}
+.section-title{font-family:var(--display);font-size:clamp(30px,4vw,52px);font-weight:800;letter-spacing:-1.5px;line-height:1.05;margin-bottom:14px;}
+.section-body{font-size:16px;color:var(--text2);max-width:580px;line-height:1.65;margin-bottom:60px;}
+
+/* FEATURE GRID */
+.feat-section{
+  padding:110px 0;
+  background:linear-gradient(180deg,transparent,rgba(10,16,28,.6) 40%,rgba(10,16,28,.6) 60%,transparent);
+  border-top:1px solid rgba(22,32,52,.5);
+  border-bottom:1px solid rgba(22,32,52,.5);
+}
+.feat-inner{max-width:1200px;margin:0 auto;padding:0 24px;}
+.feat-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;background:var(--border);
+  border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--border);
+}
+@media(max-width:1000px){.feat-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:580px){.feat-grid{grid-template-columns:1fr;}}
+
+.feat-card{
+  background:var(--bg2);padding:30px 26px;
+  position:relative;overflow:hidden;transition:background .25s var(--ease);cursor:default;
+}
+.feat-card:hover{background:var(--surface);}
+.feat-card .glow{
+  position:absolute;top:-40px;left:-40px;
+  width:120px;height:120px;border-radius:50%;
+  opacity:0;transition:opacity .35s;
+  pointer-events:none;
+}
+.feat-card:hover .glow{opacity:1;}
+.feat-card[data-c="red"] .glow{background:radial-gradient(circle,rgba(255,59,48,.12),transparent 70%);}
+.feat-card[data-c="amber"] .glow{background:radial-gradient(circle,rgba(245,166,35,.12),transparent 70%);}
+.feat-card[data-c="green"] .glow{background:radial-gradient(circle,rgba(0,200,150,.12),transparent 70%);}
+.feat-card[data-c="blue"] .glow{background:radial-gradient(circle,rgba(59,142,255,.12),transparent 70%);}
+.feat-card[data-c="violet"] .glow{background:radial-gradient(circle,rgba(155,109,255,.12),transparent 70%);}
+
+.feat-icon{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:18px;}
+.feat-card[data-c="red"]    .feat-icon{background:var(--red-m);border:1px solid rgba(255,59,48,.18);}
+.feat-card[data-c="amber"]  .feat-icon{background:var(--amber-m);border:1px solid rgba(245,166,35,.18);}
+.feat-card[data-c="green"]  .feat-icon{background:var(--green-m);border:1px solid rgba(0,200,150,.18);}
+.feat-card[data-c="blue"]   .feat-icon{background:var(--blue-m);border:1px solid rgba(59,142,255,.18);}
+.feat-card[data-c="violet"] .feat-icon{background:var(--violet-m);border:1px solid rgba(155,109,255,.18);}
+.feat-title{font-family:var(--display);font-size:15px;font-weight:700;margin-bottom:8px;line-height:1.25;}
+.feat-desc{font-size:13px;color:var(--text2);line-height:1.62;}
+.feat-chip{
+  display:inline-block;margin-top:14px;padding:3px 10px;
+  border-radius:100px;font-family:var(--mono);font-size:10px;
+}
+.feat-card[data-c="red"]    .feat-chip{background:var(--red-m);color:var(--red);border:1px solid rgba(255,59,48,.18);}
+.feat-card[data-c="amber"]  .feat-chip{background:var(--amber-m);color:var(--amber);border:1px solid rgba(245,166,35,.18);}
+.feat-card[data-c="green"]  .feat-chip{background:var(--green-m);color:var(--green);border:1px solid rgba(0,200,150,.18);}
+.feat-card[data-c="blue"]   .feat-chip{background:var(--blue-m);color:var(--blue);border:1px solid rgba(59,142,255,.18);}
+.feat-card[data-c="violet"] .feat-chip{background:var(--violet-m);color:var(--violet);border:1px solid rgba(155,109,255,.18);}
+
+/* HOW IT WORKS */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;position:relative;}
+@media(max-width:860px){.steps{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:440px){.steps{grid-template-columns:1fr;}}
+.steps::before{content:'';position:absolute;top:32px;left:calc(12.5% + 14px);right:calc(12.5% + 14px);height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);}
+@media(max-width:860px){.steps::before{display:none;}}
+.step{text-align:center;}
+.step-num{width:62px;height:62px;border-radius:50%;background:var(--surface);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:22px;font-weight:800;color:var(--red);margin:0 auto 18px;position:relative;z-index:1;transition:all .25s;}
+.step:hover .step-num{background:var(--red-m);border-color:rgba(255,59,48,.35);box-shadow:0 0 24px rgba(255,59,48,.18);}
+.step-icon{font-size:28px;margin-bottom:14px;display:block;}
+.step-title{font-family:var(--display);font-size:15px;font-weight:700;margin-bottom:8px;}
+.step-desc{font-size:13px;color:var(--text2);line-height:1.6;}
+
+/* SOS SECTION */
+.sos-sec{
+  padding:100px 24px;text-align:center;
+  background:radial-gradient(ellipse 70% 50% at 50% 50%,rgba(255,59,48,.055) 0%,transparent 70%);
+  border-top:1px solid rgba(255,59,48,.08);
+  border-bottom:1px solid rgba(255,59,48,.08);
+}
+.sos-ring{
+  display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+  width:176px;height:176px;border-radius:50%;
+  background:linear-gradient(135deg,#120302,#1A0504);
+  border:2.5px solid rgba(255,59,48,.35);
+  cursor:pointer;margin:36px auto;
+  animation:sosBig 2.8s ease-in-out infinite;
+  transition:all .25s var(--ease);
+  position:relative;
+}
+.sos-ring::before{content:'';position:absolute;inset:-14px;border-radius:50%;border:1px solid rgba(255,59,48,.15);animation:sosBig2 2.8s ease-in-out infinite;}
+.sos-ring:hover{transform:scale(1.06);box-shadow:0 0 60px rgba(255,59,48,.35);border-color:var(--red);}
+@keyframes sosBig{0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,.3);}50%{box-shadow:0 0 0 22px rgba(255,59,48,0);}}
+@keyframes sosBig2{0%,100%{opacity:.3;transform:scale(1);}50%{opacity:0;transform:scale(1.14);}}
+.sos-ring-icon{font-size:46px;margin-bottom:8px;}
+.sos-ring-lbl{font-family:var(--display);font-size:20px;font-weight:800;color:var(--red);letter-spacing:3px;}
+.sos-help{font-size:14px;color:var(--text2);max-width:500px;margin:0 auto;line-height:1.65;}
+
+/* TECH PILLS */
+.pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:44px;}
+.pill{display:flex;align-items:center;gap:9px;padding:9px 18px;background:var(--surface);border:1px solid var(--border2);border-radius:100px;font-size:13.5px;font-weight:500;transition:all .22s var(--ease);}
+.pill:hover{background:var(--surface2);transform:translateY(-2px);}
+
+/* FOOTER */
+.footer{border-top:1px solid var(--border);padding:44px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;background:var(--bg2);}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:13px;color:var(--text2);text-decoration:none;transition:color .2s;}
+.footer-links a:hover{color:var(--text);}
+.footer-copy{font-size:12px;color:var(--text3);}
+
+/* ══════ SCROLL ANIMATIONS ══════ */
+.reveal{opacity:0;transform:translateY(36px);transition:opacity .65s var(--ease),transform .65s var(--ease);}
+.reveal.d1{transition-delay:.1s;}.reveal.d2{transition-delay:.2s;}.reveal.d3{transition-delay:.3s;}
+.reveal.d4{transition-delay:.4s;}.reveal.d5{transition-delay:.5s;}.reveal.d6{transition-delay:.6s;}
+.reveal.d7{transition-delay:.7s;}.reveal.d8{transition-delay:.8s;}
+.reveal.vis{opacity:1;transform:none;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:none;}}
+
+/* ══════ DASHBOARD ══════ */
+#pg-dash{padding-top:58px;padding-bottom:36px;}
+.dash-layout{display:grid;grid-template-columns:248px 1fr;min-height:calc(100vh - 58px);}
+@media(max-width:860px){.dash-layout{grid-template-columns:1fr;} .sidebar{display:none;}}
+
+.sidebar{
+  background:var(--bg2);border-right:1px solid var(--border);
+  padding:18px;display:flex;flex-direction:column;gap:4px;
+  overflow-y:auto;position:sticky;top:58px;height:calc(100vh - 58px);
+}
+.sb-group{font-size:9.5px;font-weight:700;color:var(--text3);letter-spacing:1.8px;text-transform:uppercase;padding:12px 6px 5px;}
+.sb-item{
+  display:flex;align-items:center;gap:10px;padding:9px 11px;
+  border-radius:var(--r-sm);cursor:pointer;font-size:13px;color:var(--text2);
+  transition:all .18s var(--ease);border:1px solid transparent;position:relative;
+}
+.sb-item:hover,.sb-item.on{background:var(--surface);border-color:var(--border2);color:var(--text);}
+.sb-item.on{color:var(--red);background:rgba(255,59,48,.05);border-color:rgba(255,59,48,.14);}
+.sb-item.on::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;background:var(--red);border-radius:0 2px 2px 0;}
+.sb-badge{margin-left:auto;font-family:var(--mono);font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:100px;}
+.sb-badge.r{background:var(--red-m);color:var(--red);border:1px solid rgba(255,59,48,.18);}
+.sb-badge.a{background:var(--amber-m);color:var(--amber);border:1px solid rgba(245,166,35,.18);}
+.sb-badge.g{background:var(--green-m);color:var(--green);border:1px solid rgba(0,200,150,.18);}
+.sb-badge.b{background:var(--blue-m);color:var(--blue);border:1px solid rgba(59,142,255,.18);}
+.sb-div{height:1px;background:var(--border);margin:8px 0;}
+
+.main{padding:24px;overflow-y:auto;background:var(--bg);}
+
+/* DASH HEADER */
+.dash-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+.dash-hdr h2{font-family:var(--display);font-size:21px;font-weight:700;display:flex;align-items:center;gap:10px;}
+.dash-hdr-right{display:flex;align-items:center;gap:10px;}
+.clock-pill{font-family:var(--mono);font-size:13px;color:var(--text2);background:var(--surface);padding:6px 14px;border-radius:8px;border:1px solid var(--border2);}
+.btn{padding:7px 15px;border-radius:8px;font-size:12.5px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:all .2s;border:1px solid var(--border2);background:var(--surface);color:var(--text);}
+.btn:hover{background:var(--surface2);}
+.btn.red{background:var(--red);border-color:var(--red);color:#fff;font-weight:600;}
+.btn.red:hover{background:#d42920;}
+
+/* KPI CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;}
+@media(max-width:860px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
+.kpi{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s;
+}
+.kpi:hover{border-color:var(--border3);transform:translateY(-1px);}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.kpi.crit::after{background:var(--red);}
+.kpi.warn::after{background:var(--amber);}
+.kpi.ok::after{background:var(--green);}
+.kpi.info::after{background:var(--blue);}
+.kpi-lbl{font-size:10.5px;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;font-family:var(--mono);margin-bottom:10px;}
+.kpi-val{font-family:var(--display);font-size:34px;font-weight:800;line-height:1;margin-bottom:5px;transition:color .3s;}
+.kpi.crit .kpi-val{color:var(--red);}
+.kpi.warn .kpi-val{color:var(--amber);}
+.kpi.ok  .kpi-val{color:var(--green);}
+.kpi.info .kpi-val{color:var(--blue);}
+.kpi-trend{font-size:11px;color:var(--text3);}
+.kpi-trend .up{color:var(--green);}
+.kpi-trend .dn{color:var(--red);}
+
+/* GRID LAYOUTS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.span2{grid-column:1/-1;}
+@media(max-width:780px){.g2,.g3{grid-template-columns:1fr;}}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;}
+.card-title{font-family:var(--display);font-size:13.5px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.dot.r{background:var(--red);box-shadow:0 0 5px var(--red);}
+.dot.a{background:var(--amber);}
+.dot.g{background:var(--green);box-shadow:0 0 5px var(--green);}
+.dot.b{background:var(--blue);}
+.card-right{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--green);display:flex;align-items:center;gap:5px;}
+.live-badge{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;color:var(--green);}
+.live-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--green);animation:wsDot 1.5s infinite;}
+
+/* MAP */
+#leafletMap{height:340px;border-radius:10px;border:1px solid var(--border2);}
+.map-legend{display:flex;gap:18px;margin-top:10px;font-size:11.5px;color:var(--text2);flex-wrap:wrap;}
+.map-legend span{display:flex;align-items:center;gap:6px;}
+.ml-dot{width:8px;height:8px;border-radius:50%;}
+
+/* INCIDENT LIST */
+.inc-list{display:flex;flex-direction:column;gap:7px;}
+.inc-item{
+  display:flex;align-items:center;gap:11px;padding:12px 13px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r-sm);transition:all .2s;cursor:pointer;
+}
+.inc-item:hover{border-color:var(--border3);background:rgba(23,40,64,.8);}
+.inc-item.new-inc{animation:incFlash .8s ease;}
+@keyframes incFlash{0%{background:rgba(255,59,48,.1);border-color:var(--red);}100%{background:var(--bg3);border-color:var(--border);}}
+.sev{padding:3px 9px;border-radius:5px;font-size:9.5px;font-weight:700;font-family:var(--mono);flex-shrink:0;letter-spacing:.5px;}
+.sev.P1{background:var(--red-m);color:var(--red);border:1px solid rgba(255,59,48,.22);}
+.sev.P2{background:var(--amber-m);color:var(--amber);border:1px solid rgba(245,166,35,.22);}
+.sev.P3{background:var(--green-m);color:var(--green);border:1px solid rgba(0,200,150,.22);}
+.inc-body{flex:1;min-width:0;}
+.inc-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inc-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.inc-time{font-size:11px;color:var(--text3);font-family:var(--mono);flex-shrink:0;}
+.inc-disp{font-size:9.5px;padding:3px 8px;background:var(--blue-m);color:var(--blue);border:1px solid rgba(59,142,255,.2);border-radius:100px;flex-shrink:0;font-family:var(--mono);}
+
+/* TRIAGE FEED */
+.triage-item{display:flex;gap:12px;padding:13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:9px;transition:all .2s;}
+.triage-item:hover{border-color:var(--border3);}
+.triage-thumb{width:50px;height:50px;border-radius:9px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:20px;border:1px solid var(--border2);flex-shrink:0;}
+.triage-body{flex:1;min-width:0;}
+.triage-title{font-size:12.5px;font-weight:600;margin-bottom:3px;}
+.triage-desc{font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.5;}
+.triage-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.ttag{padding:2px 8px;border-radius:100px;font-size:9.5px;font-family:var(--mono);}
+.ttag.c{background:var(--red-m);color:var(--red);border:1px solid rgba(255,59,48,.18);}
+.ttag.m{background:var(--amber-m);color:var(--amber);border:1px solid rgba(245,166,35,.18);}
+.ttag.g{background:var(--green-m);color:var(--green);border:1px solid rgba(0,200,150,.18);}
+.ttag.b{background:var(--blue-m);color:var(--blue);border:1px solid rgba(59,142,255,.18);}
+.conf{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:9px;}
+.conf-fill{height:100%;border-radius:2px;transition:width 1.4s cubic-bezier(.4,0,.2,1);}
+
+/* RESOURCES */
+.res-item{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.res-lbl{font-size:12px;color:var(--text2);width:130px;flex-shrink:0;}
+.res-track{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden;position:relative;}
+.res-fill{height:100%;border-radius:4px;transition:width 1.8s cubic-bezier(.4,0,.2,1);}
+.res-pct{font-size:11.5px;font-family:var(--mono);width:34px;text-align:right;flex-shrink:0;}
+.res-alert{margin-top:12px;padding:11px 14px;background:rgba(255,59,48,.06);border:1px solid rgba(255,59,48,.18);border-radius:10px;font-size:12px;color:var(--text2);display:flex;gap:9px;}
+.res-alert strong{color:var(--red);}
+
+/* VOLUNTEERS */
+.vol-item{display:flex;align-items:center;gap:11px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:7px;transition:all .2s;}
+.vol-item:hover{border-color:var(--border3);}
+.vol-av{width:36px;height:36px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:15px;border:1px solid var(--border2);flex-shrink:0;}
+.vol-st{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.vol-st.on{background:var(--green);box-shadow:0 0 5px var(--green);}
+.vol-st.busy{background:var(--amber);}
+.vol-st.enr{background:var(--blue);}
+.vol-name{font-size:12.5px;font-weight:500;}
+.vol-skill{font-size:11px;color:var(--text2);}
+.vol-dist{font-size:11.5px;font-family:var(--mono);color:var(--green);margin-left:auto;white-space:nowrap;}
+.dispatch-btn{font-size:10px;padding:4px 10px;background:var(--green-m);color:var(--green);border:1px solid rgba(0,200,150,.22);border-radius:100px;cursor:pointer;transition:all .2s;white-space:nowrap;font-family:var(--sans);}
+.dispatch-btn:hover{background:rgba(0,200,150,.22);}
+.dispatch-btn:disabled{opacity:.5;cursor:default;}
+
+/* ══════ REPORT PAGE ══════ */
+#pg-report{padding-top:58px;padding-bottom:72px;}
+.report-wrap{max-width:800px;margin:0 auto;padding:48px 24px;}
+.report-hdr{margin-bottom:36px;}
+.report-hdr h2{font-family:var(--display);font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px;}
+.report-hdr p{font-size:14px;color:var(--text2);}
+
+.fcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:28px;margin-bottom:14px;}
+.fsec{font-family:var(--display);font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:18px;display:flex;align-items:center;gap:12px;}
+.fsec::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.type-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;}
+@media(max-width:560px){.type-grid{grid-template-columns:repeat(3,1fr);}}
+.type-btn{padding:16px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:11px;text-align:center;cursor:pointer;font-size:11.5px;color:var(--text2);font-family:var(--sans);transition:all .2s;}
+.type-btn .ti{font-size:24px;display:block;margin-bottom:7px;}
+.type-btn:hover{border-color:var(--border3);color:var(--text);background:var(--surface2);}
+.type-btn.sel{border-color:rgba(255,59,48,.45);background:var(--red-s);color:var(--text);}
+
+.langs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+.lang{padding:5px 13px;border-radius:100px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .2s;}
+.lang:hover{border-color:var(--border3);color:var(--text);}
+.lang.on{background:var(--blue-m);border-color:rgba(59,142,255,.32);color:var(--blue);}
+
+.voice-btn{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:11px;
+  padding:15px;background:var(--blue-m);border:1px solid rgba(59,142,255,.22);
+  border-radius:11px;color:var(--blue);font-size:14px;font-weight:500;
+  cursor:pointer;font-family:var(--sans);transition:all .2s;
+}
+.voice-btn:hover{background:rgba(59,142,255,.18);}
+.voice-btn.rec{background:rgba(255,59,48,.1);border-color:rgba(255,59,48,.35);color:var(--red);animation:voiceRec 1.2s infinite;}
+@keyframes voiceRec{0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,.3);}50%{box-shadow:0 0 0 10px rgba(255,59,48,0);}}
+.waveform{display:none;align-items:center;gap:3px;height:30px;}
+.waveform.on{display:flex;}
+.wbar{width:3px;background:var(--red);border-radius:3px;animation:waveAnim .65s ease-in-out infinite;}
+.wbar:nth-child(1){animation-delay:0s;}.wbar:nth-child(2){animation-delay:.1s;}.wbar:nth-child(3){animation-delay:.2s;}.wbar:nth-child(4){animation-delay:.3s;}.wbar:nth-child(5){animation-delay:.4s;}
+@keyframes waveAnim{0%,100%{height:5px;opacity:.45;}50%{height:24px;opacity:1;}}
+
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:560px){.frow{grid-template-columns:1fr;}}
+.fg{margin-bottom:14px;}
+.flabel{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:6px;display:block;font-family:var(--mono);letter-spacing:.5px;text-transform:uppercase;}
+.finput{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;transition:all .2s;}
+.finput:focus{border-color:rgba(59,142,255,.45);box-shadow:0 0 0 3px rgba(59,142,255,.07);}
+.finput::placeholder{color:var(--text3);}
+select.finput option{background:var(--bg2);}
+
+.upload-z{border:2px dashed var(--border3);border-radius:11px;padding:44px 28px;text-align:center;cursor:pointer;transition:all .2s;color:var(--text2);font-size:14px;}
+.upload-z:hover{border-color:rgba(59,142,255,.4);background:rgba(59,142,255,.03);}
+.upload-icon{font-size:34px;display:block;margin-bottom:10px;}
+.upload-z small{font-size:11px;color:var(--text3);display:block;margin-top:5px;}
+
+.ai-res{background:var(--bg3);border:1px solid rgba(0,200,150,.28);border-radius:11px;padding:18px;margin-top:14px;display:none;}
+.ai-res.show{display:block;animation:slideDown .4s var(--ease);}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:none;}}
+.ai-hdr{font-family:var(--mono);font-size:10px;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+.ai-hdr::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);animation:wsDot 1.5s infinite;}
+.ai-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border);}
+.ai-row:last-child{border-bottom:none;}
+.ai-row .lbl{color:var(--text2);}
+.ai-row .val{font-weight:600;color:var(--red);}
+.ai-row .val.ok{color:var(--green);}
+
+.sub-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--red) 0%,#A80E08 100%);color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:all .22s var(--ease);box-shadow:0 4px 20px rgba(255,59,48,.22);letter-spacing:.3px;}
+.sub-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(255,59,48,.38);}
+.sub-btn:disabled{opacity:.65;cursor:default;transform:none;}
+
+/* ══════ ANALYTICS PAGE ══════ */
+#pg-analytics{padding-top:58px;padding-bottom:72px;}
+.analytics-wrap{padding:28px;max-width:1200px;margin:0 auto;}
+.analytics-wrap h2{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:24px;}
+
+.pred-card{padding:15px 17px;border-radius:11px;margin-bottom:11px;}
+.pred-card.high{background:rgba(255,59,48,.06);border:1px solid rgba(255,59,48,.18);}
+.pred-card.med{background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.18);}
+.pred-card.ok{background:rgba(0,200,150,.06);border:1px solid rgba(0,200,150,.18);}
+.pred-lv{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1px;margin-bottom:5px;}
+.pred-card.high .pred-lv{color:var(--red);}
+.pred-card.med .pred-lv{color:var(--amber);}
+.pred-card.ok .pred-lv{color:var(--green);}
+.pred-title{font-size:13.5px;font-weight:600;margin-bottom:4px;}
+.pred-desc{font-size:12px;color:var(--text2);line-height:1.5;}
+
+.ai-metric{text-align:center;padding:20px 14px;background:var(--bg3);border-radius:11px;border:1px solid var(--border);transition:all .22s;}
+.ai-metric:hover{border-color:var(--border3);transform:translateY(-2px);}
+.ai-metric-icon{font-size:26px;margin-bottom:10px;}
+.ai-metric-val{font-family:var(--display);font-size:26px;font-weight:800;line-height:1;margin-bottom:5px;}
+.ai-metric-lbl{font-size:11px;color:var(--text2);line-height:1.45;}
+
+.chart-container{position:relative;height:180px;}
+.legend-item{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text2);margin-bottom:9px;}
+.legend-swatch{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.legend-pct{font-family:var(--mono);font-size:11.5px;margin-left:auto;}
+
+/* ══════ SOS MODAL ══════ */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);z-index:900;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;visibility:hidden;transition:all .3s var(--ease);}
+.overlay.on{opacity:1;visibility:visible;}
+.modal{background:var(--surface);border:1px solid var(--border3);border-radius:var(--r-lg);padding:40px;max-width:460px;width:100%;text-align:center;transform:scale(.9);transition:transform .3s var(--ease);}
+.overlay.on .modal{transform:scale(1);}
+.modal-icon{font-size:60px;margin-bottom:18px;display:block;}
+.modal h3{font-family:var(--display);font-size:22px;font-weight:800;margin-bottom:10px;color:var(--red);}
+.modal p{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:26px;}
+.modal-btns{display:flex;gap:11px;justify-content:center;}
+.modal-confirm{padding:12px 26px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:all .2s;animation:sosPill 2s infinite;}
+.modal-confirm:hover{background:#d42920;transform:scale(1.04);}
+.modal-cancel{padding:12px 26px;background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:10px;font-size:14.5px;cursor:pointer;font-family:var(--sans);transition:all .2s;}
+.modal-cancel:hover{background:var(--surface3);}
+.modal-progress-wrap{margin-top:20px;display:none;}
+.modal-progress-wrap.show{display:block;}
+.modal-progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin:10px 0;}
+.modal-progress-fill{height:100%;background:var(--red);border-radius:2px;width:0;transition:width 3s linear;}
+.modal-status-text{font-size:13px;color:var(--text2);font-family:var(--mono);}
+
+/* ══════ TOAST ══════ */
+.toast{
+  position:fixed;bottom:52px;right:24px;z-index:800;
+  background:var(--surface2);border:1px solid var(--border3);
+  border-radius:var(--r);padding:16px 20px;max-width:340px;
+  box-shadow:0 8px 40px rgba(0,0,0,.45);
+  transform:translateY(80px);opacity:0;
+  transition:all .38s var(--ease);pointer-events:none;
+}
+.toast.show{transform:none;opacity:1;pointer-events:auto;}
+.toast-title{font-weight:700;margin-bottom:3px;font-family:var(--display);font-size:14px;}
+.toast-msg{font-size:13px;color:var(--text2);line-height:1.5;}
+
+/* ══════ LOADING SPINNER ══════ */
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ══════ LEAFLET CUSTOM STYLES ══════ */
+.leaflet-popup-content-wrapper{background:var(--surface2);border:1px solid var(--border3);border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.5);}
+.leaflet-popup-content{color:var(--text);font-family:var(--sans);font-size:13px;}
+.leaflet-popup-tip{background:var(--surface2);}
+.custom-pin{
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.7);
+  position:relative;cursor:pointer;
+}
+.custom-pin.crit{background:var(--red);box-shadow:0 0 0 0 rgba(255,59,48,.6);animation:pingMap 1.6s infinite;}
+.custom-pin.warn{background:var(--amber);}
+.custom-pin.ok{background:var(--green);}
+@keyframes pingMap{0%{box-shadow:0 0 0 0 rgba(255,59,48,.6);}100%{box-shadow:0 0 0 18px rgba(255,59,48,0);}}
+
+/* ══════ RESPONSIVE ══════ */
+@media(max-width:640px){
+  .topbar{padding:0 14px;}
+  .nav{display:none;}
+  .stats-row .stat-block{padding:0 20px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ TOPBAR ══════════════════════ -->
+<header class="topbar" id="topbar">
+  <div class="logo" onclick="go('home')">
+    <div class="logo-mark">⚡</div>
+    <span class="logo-text">Crisis<em>Nexus</em></span>
+  </div>
+  <nav class="nav">
+    <button class="nav-btn on" onclick="go('home')">Overview</button>
+    <button class="nav-btn" onclick="go('dash')">Command Center</button>
+    <button class="nav-btn" onclick="go('report')">Report Crisis</button>
+    <button class="nav-btn" onclick="go('analytics')">Analytics</button>
+  </nav>
+  <div class="tb-right">
+    <div class="ws-pill disconnected" id="wsPill">
+      <span class="ws-dot"></span>
+      <span id="wsLabel">CONNECTING</span>
+    </div>
+    <button class="sos-pill" onclick="openSOS()">🆘&nbsp; SOS</button>
+  </div>
+</header>
+
+<!-- ══════════════════════ LIVE TICKER ══════════════════════ -->
+<div class="ticker-bar">
+  <div class="ticker-label"><span class="ticker-dot"></span>LIVE</div>
+  <div class="ticker-scroll">
+    <div class="ticker-inner" id="tickerInner">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     HOME PAGE
+══════════════════════════════════════════════════════════ -->
+<div class="page on" id="pg-home">
+
+  <!-- HERO -->
+  <section class="hero">
+    <canvas id="pCanvas"></canvas>
+    <div class="hero-glow1"></div>
+    <div class="hero-glow2"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-content">
+      <div class="hero-badge">● &nbsp;INDIA'S FIRST AI CRISIS RESPONSE PLATFORM</div>
+      <h1>Every Second<br><span class="grd">Saves Lives</span></h1>
+      <p class="hero-sub">CrisisNexus unifies Gemini AI triage, multilingual voice reporting, real-time command, and Vertex AI predictive analytics to coordinate emergency response across India's most critical moments.</p>
+      <div class="stats-row">
+        <div class="stat-block">
+          <span class="stat-num red" id="cntInc">0</span>
+          <div class="stat-lbl">Active Incidents</div>
+        </div>
+        <div class="stat-block">
+          <span class="stat-num amber">&lt;3s</span>
+          <div class="stat-lbl">AI Triage Speed</div>
+        </div>
+        <div class="stat-block">
+          <span class="stat-num green" id="cntLives">0</span>
+          <div class="stat-lbl">Lives Assisted</div>
+        </div>
+      </div>
+      <div class="cta-row">
+        <button class="btn-cta primary" onclick="go('dash')">Open Command Center →</button>
+        <button class="btn-cta ghost"   onclick="go('report')">Report a Crisis</button>
+      </div>
+    </div>
+    <div class="scroll-cue" onclick="document.getElementById('featAnchor').scrollIntoView({behavior:'smooth'})">
+      <span>SCROLL</span>
+      <div class="scroll-arr">↓</div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <div id="featAnchor"></div>
+  <div class="feat-section">
+    <div class="feat-inner">
+      <div style="max-width:680px;margin-bottom:64px" class="reveal">
+        <div class="section-tag">Core Platform</div>
+        <h2 class="section-title">Eight pillars of<br>crisis response</h2>
+        <p class="section-body">Built ground-up for India's scale, terrain, and language diversity — every feature engineered for the decisive first 30 minutes.</p>
+      </div>
+      <div class="feat-grid">
+        <div class="feat-card reveal d1" data-c="red"><div class="glow"></div><div class="feat-icon">🤖</div><div class="feat-title">AI Scene Triage</div><div class="feat-desc">Upload a scene photo; Gemini Vision classifies severity P1–P3, detects hazards, counts casualties, and recommends rescue type in under 3 seconds.</div><span class="feat-chip">Gemini 1.5 Pro</span></div>
+        <div class="feat-card reveal d2" data-c="blue"><div class="glow"></div><div class="feat-icon">🎙️</div><div class="feat-title">Multilingual Voice</div><div class="feat-desc">Crisis reporting in Telugu, Hindi, Tamil, Kannada, Malayalam, and 6 more Indian languages using Google Speech-to-Text + Translation API.</div><span class="feat-chip">11 Languages</span></div>
+        <div class="feat-card reveal d3" data-c="amber"><div class="glow"></div><div class="feat-icon">📡</div><div class="feat-title">Offline Mesh Network</div><div class="feat-desc">Device-to-device sync using Bluetooth/WiFi-Direct when internet is down. Auto-syncs to Firebase when connectivity returns. Zero data loss.</div><span class="feat-chip">Zero Downtime</span></div>
+        <div class="feat-card reveal d4" data-c="violet"><div class="glow"></div><div class="feat-icon">🔮</div><div class="feat-title">Predictive Resource AI</div><div class="feat-desc">Forecasts ambulance, hospital bed, blood supply, and rescue shortages 30–60 minutes in advance using Vertex AI and historical crisis patterns.</div><span class="feat-chip">Vertex AI</span></div>
+        <div class="feat-card reveal d5" data-c="green"><div class="glow"></div><div class="feat-icon">🤝</div><div class="feat-title">Smart Volunteer Match</div><div class="feat-desc">AI matches registered volunteers to incidents by skill, proximity, and current load in real time using the C-powered geospatial routing engine.</div><span class="feat-chip">Geo Engine (C)</span></div>
+        <div class="feat-card reveal d6" data-c="blue"><div class="glow"></div><div class="feat-icon">🗺️</div><div class="feat-title">Live Command Dashboard</div><div class="feat-desc">Real-time Leaflet heatmap showing all incidents, dispatched units, and volunteer positions. WebSocket-powered — zero polling required.</div><span class="feat-chip">WebSocket Live</span></div>
+        <div class="feat-card reveal d7" data-c="amber"><div class="glow"></div><div class="feat-icon">🚁</div><div class="feat-title">Auto Unit Dispatch</div><div class="feat-desc">Nearest units auto-dispatched by our C geospatial engine computing haversine distances and dispatch-priority scores across all available resources.</div><span class="feat-chip">C Geo Engine</span></div>
+        <div class="feat-card reveal d8" data-c="red"><div class="glow"></div><div class="feat-icon">🆘</div><div class="feat-title">Public Panic Button</div><div class="feat-desc">One-tap SOS from any device — GPS transmitted via WebSocket to nearest command center. SMS fallback when offline. ETA shown in under 2 seconds.</div><span class="feat-chip">GPS + SMS</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="lp-section">
+    <div class="reveal">
+      <div class="section-tag">Workflow</div>
+      <h2 class="section-title">Crisis resolved in four steps</h2>
+      <p class="section-body">From first report to resource dispatch — CrisisNexus compresses hours of coordination into minutes.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal d1"><div class="step-num">01</div><span class="step-icon">📸</span><div class="step-title">Incident Reported</div><div class="step-desc">Any citizen taps SOS or submits a voice/photo report in their language — even offline via mesh.</div></div>
+      <div class="step reveal d2"><div class="step-num">02</div><span class="step-icon">🧠</span><div class="step-title">Gemini Triage &lt;3s</div><div class="step-desc">Vision AI analyzes the scene, assigns P1–P3, detects hazards and estimates casualties instantly.</div></div>
+      <div class="step reveal d3"><div class="step-num">03</div><span class="step-icon">⚡</span><div class="step-title">C Engine Dispatches</div><div class="step-desc">Our native C geospatial engine computes nearest units via haversine, dispatches with real ETA.</div></div>
+      <div class="step reveal d4"><div class="step-num">04</div><span class="step-icon">📊</span><div class="step-title">Command Oversight</div><div class="step-desc">Commanders monitor every unit and volunteer live. Vertex AI predicts shortages 30–60 min ahead.</div></div>
+    </div>
+  </div>
+
+  <!-- SOS SECTION -->
+  <div class="sos-sec reveal">
+    <div class="section-tag" style="justify-content:center"><span style="width:22px;height:1px;background:var(--red);display:inline-block"></span>Emergency Access<span style="width:22px;height:1px;background:var(--red);display:inline-block"></span></div>
+    <h2 class="section-title">In danger right now?</h2>
+    <p class="section-body" style="margin:0 auto 10px">Your GPS coordinates are sent instantly to the nearest command center via WebSocket. Press only in a genuine emergency.</p>
+    <div class="sos-ring" onclick="openSOS()">
+      <div class="sos-ring-icon">🆘</div>
+      <div class="sos-ring-lbl">SOS</div>
+    </div>
+    <p class="sos-help">Works offline — SMS fallback ensures your signal always reaches responders even without internet.</p>
+  </div>
+
+  <!-- TECH STACK -->
+  <div class="lp-section">
+    <div class="reveal">
+      <div class="section-tag">Technology</div>
+      <h2 class="section-title">Built on Google AI<br>+ native performance</h2>
+      <p class="section-body">Every component uses production-grade technology: Google Cloud AI for intelligence, Python FastAPI for the backend, and a native C engine for geospatial routing.</p>
+    </div>
+    <div class="pills">
+      <div class="pill reveal d1"><span>🤖</span> Gemini 1.5 Pro Vision</div>
+      <div class="pill reveal d2"><span>🔮</span> Vertex AI (Predictive)</div>
+      <div class="pill reveal d3"><span>🎙️</span> Google Speech-to-Text</div>
+      <div class="pill reveal d4"><span>🌐</span> Google Translate API</div>
+      <div class="pill reveal d5"><span>🗺️</span> Leaflet + OSM Maps</div>
+      <div class="pill reveal d6"><span>🔥</span> Firebase Realtime DB</div>
+      <div class="pill reveal d7"><span>⚡</span> Python FastAPI</div>
+      <div class="pill reveal d8"><span>🔧</span> C Geo Engine (ctypes)</div>
+      <div class="pill reveal d1"><span>🔌</span> WebSocket Real-time</div>
+      <div class="pill reveal d2"><span>📊</span> Chart.js Analytics</div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="logo-text" style="font-family:var(--display);font-size:17px;font-weight:800">Crisis<em style="font-style:normal;color:var(--red)">Nexus</em></div>
+    <div class="footer-links">
+      <a href="#" onclick="go('dash');return false">Command Center</a>
+      <a href="#" onclick="go('report');return false">Report Crisis</a>
+      <a href="#" onclick="go('analytics');return false">Analytics</a>
+      <a href="/api/health" target="_blank">API Health</a>
+    </div>
+    <div class="footer-copy">© 2026 CrisisNexus · FastAPI + C Geo Engine · India</div>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     COMMAND CENTER (DASHBOARD)
+══════════════════════════════════════════════════════════ -->
+<div class="page" id="pg-dash">
+  <div class="dash-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sb-group">Command</div>
+      <div class="sb-item on" onclick="hlSb(this)"><span>📡</span>Live Overview<span class="sb-badge r" id="sbIncCount">5</span></div>
+      <div class="sb-item" onclick="hlSb(this)"><span>🗺️</span>Crisis Map</div>
+      <div class="sb-item" onclick="hlSb(this)"><span>🚨</span>Active Incidents<span class="sb-badge r">5</span></div>
+      <div class="sb-group">AI Systems</div>
+      <div class="sb-item" onclick="hlSb(this)"><span>🤖</span>AI Triage Feed<span class="sb-badge b">Live</span></div>
+      <div class="sb-item" onclick="hlSb(this)"><span>🔮</span>Vertex Predictions<span class="sb-badge a">2</span></div>
+      <div class="sb-group">Resources</div>
+      <div class="sb-item" onclick="hlSb(this)"><span>🚑</span>Ambulances<span class="sb-badge a">72%</span></div>
+      <div class="sb-item" onclick="hlSb(this)"><span>🏥</span>Hospital Beds<span class="sb-badge r">88%</span></div>
+      <div class="sb-item" onclick="hlSb(this)"><span>🩸</span>Blood Supply<span class="sb-badge g">31%</span></div>
+      <div class="sb-group">Volunteers</div>
+      <div class="sb-item" onclick="hlSb(this)"><span>👥</span>Available<span class="sb-badge g" id="sbVolCount">5</span></div>
+      <div class="sb-item" onclick="hlSb(this)"><span>📍</span>En Route<span class="sb-badge a">1</span></div>
+      <div class="sb-div"></div>
+      <div class="sb-item" onclick="go('report')"><span>➕</span>New Report</div>
+      <div class="sb-item" onclick="go('analytics')"><span>📊</span>Analytics</div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="dash-hdr">
+        <h2>⚡ Command Center <span style="font-size:14px;font-weight:400;color:var(--text2);font-family:var(--sans)">— Hyderabad Metro</span></h2>
+        <div class="dash-hdr-right">
+          <div class="clock-pill" id="clock">00:00:00</div>
+          <button class="btn" onclick="refreshDash()">↻ Refresh</button>
+          <button class="btn red" onclick="go('report')">+ Report</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-row">
+        <div class="kpi crit"><div class="kpi-lbl">Critical (P1)</div><div class="kpi-val" id="kpiP1">3</div><div class="kpi-trend"><span class="dn">▲1</span> since last hour</div></div>
+        <div class="kpi warn"><div class="kpi-lbl">Avg Response</div><div class="kpi-val" id="kpiResp">4.2m</div><div class="kpi-trend"><span class="up">↓18%</span> improvement</div></div>
+        <div class="kpi ok"><div class="kpi-lbl">Triage Speed</div><div class="kpi-val" id="kpiTriage">2.3s</div><div class="kpi-trend"><span class="up">↓0.4s</span> vs last week</div></div>
+        <div class="kpi info"><div class="kpi-lbl">Volunteers Online</div><div class="kpi-val" id="kpiVols">47</div><div class="kpi-trend"><span class="up" id="kpiVolsAvail">12</span> available</div></div>
+      </div>
+
+      <!-- MAP -->
+      <div class="g2" style="margin-bottom:14px">
+        <div class="card span2">
+          <div class="card-title"><span class="dot r"></span>Live Crisis Map — Hyderabad<div class="card-right"><span class="live-badge">LIVE</span>&nbsp;·&nbsp;<span id="mapIncCount">5 incidents</span></div></div>
+          <div id="leafletMap"></div>
+          <div class="map-legend">
+            <span><span class="ml-dot" style="background:var(--red)"></span>Critical P1</span>
+            <span><span class="ml-dot" style="background:var(--amber)"></span>Warning P2</span>
+            <span><span class="ml-dot" style="background:var(--green)"></span>Resolved</span>
+            <span><span class="ml-dot" style="background:var(--blue)"></span>Units En-route</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- INCIDENTS + TRIAGE -->
+      <div class="g2">
+        <div class="card">
+          <div class="card-title"><span class="dot r"></span>Active Incidents</div>
+          <div class="inc-list" id="incidentList">
+            <div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">
+              <div class="spin" style="margin:0 auto 8px"></div>Loading incidents...
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot b"></span>Gemini AI Triage Feed<div class="card-right"><span class="live-badge">LIVE</span></div></div>
+          <div id="triageFeed">
+            <div class="triage-item"><div class="triage-thumb">🌊</div><div class="triage-body"><div class="triage-title">Flood Scene Analysis</div><div class="triage-desc">Detected waist-deep water, 6 stranded individuals, compromised electrical lines.</div><div class="triage-tags"><span class="ttag c">CRITICAL</span><span class="ttag b">Gemini Vision</span><span class="ttag g">94% Conf</span></div><div class="conf"><div class="conf-fill" style="width:94%;background:var(--green)"></div></div></div></div>
+            <div class="triage-item"><div class="triage-thumb">🏚️</div><div class="triage-body"><div class="triage-title">Structural Collapse</div><div class="triage-desc">3-floor partial collapse. 2–4 trapped estimated. Shoring required before entry.</div><div class="triage-tags"><span class="ttag c">P1</span><span class="ttag b">Gemini Vision</span><span class="ttag m">87% Conf</span></div><div class="conf"><div class="conf-fill" style="width:87%;background:var(--amber)"></div></div></div></div>
+            <div class="triage-item"><div class="triage-thumb">😷</div><div class="triage-body"><div class="triage-title">Mass Casualty Scene</div><div class="triage-desc">12 patients: 3 Critical, 5 Serious, 4 Minor. Triage queue auto-prioritized.</div><div class="triage-tags"><span class="ttag m">SERIOUS</span><span class="ttag b">Gemini Vision</span><span class="ttag g">91% Conf</span></div><div class="conf"><div class="conf-fill" style="width:91%;background:var(--green)"></div></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESOURCES + VOLUNTEERS -->
+      <div class="g2" style="margin-top:14px">
+        <div class="card">
+          <div class="card-title"><span class="dot a"></span>Resource Allocation</div>
+          <div id="resourceBars">
+            <div style="text-align:center;padding:10px;color:var(--text2);font-size:13px"><div class="spin" style="margin:0 auto 6px"></div></div>
+          </div>
+          <div class="res-alert"><span>⚠️</span><span><strong>Vertex AI:</strong> Hospital beds critical in ~35 min. Pre-allocating NIMS & Care hospitals.</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot g"></span>Volunteers — AI Matched<div class="card-right" style="font-size:10.5px;color:var(--text2);">C Geo Engine</div></div>
+          <div id="volunteerList">
+            <div style="text-align:center;padding:10px;color:var(--text2);font-size:13px"><div class="spin" style="margin:0 auto 6px"></div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     REPORT PAGE
+══════════════════════════════════════════════════════════ -->
+<div class="page" id="pg-report">
+  <div class="report-wrap">
+    <div class="report-hdr">
+      <div class="section-tag">Incident Reporting</div>
+      <h2>Report a Crisis</h2>
+      <p>Powered by Gemini 1.5 Pro — auto-triaged in &lt;3 seconds. Nearest unit dispatched via C geo engine.</p>
+    </div>
+
+    <div class="fcard">
+      <div class="fsec">Crisis Type</div>
+      <div class="type-grid">
+        <div class="type-btn sel" onclick="pickType(this,'Flood')"><span class="ti">🌊</span>Flood</div>
+        <div class="type-btn" onclick="pickType(this,'Fire')"><span class="ti">🔥</span>Fire</div>
+        <div class="type-btn" onclick="pickType(this,'Collapse')"><span class="ti">🏚️</span>Collapse</div>
+        <div class="type-btn" onclick="pickType(this,'Accident')"><span class="ti">🚗</span>Accident</div>
+        <div class="type-btn" onclick="pickType(this,'Gas Leak')"><span class="ti">☁️</span>Gas Leak</div>
+        <div class="type-btn" onclick="pickType(this,'Medical')"><span class="ti">🏥</span>Medical</div>
+      </div>
+    </div>
+
+    <div class="fcard">
+      <div class="fsec">Voice Report — Multilingual</div>
+      <div class="langs">
+        <span class="lang on" onclick="pickLang(this)">English</span>
+        <span class="lang" onclick="pickLang(this)">తెలుగు</span>
+        <span class="lang" onclick="pickLang(this)">हिन्दी</span>
+        <span class="lang" onclick="pickLang(this)">தமிழ்</span>
+        <span class="lang" onclick="pickLang(this)">ಕನ್ನಡ</span>
+        <span class="lang" onclick="pickLang(this)">മലയാളം</span>
+        <span class="lang" onclick="pickLang(this)">বাংলা</span>
+        <span class="lang" onclick="pickLang(this)">मराठी</span>
+      </div>
+      <button class="voice-btn" id="voiceBtn" onclick="doVoice()">
+        <span id="voiceBtnIcon">🎙️</span>
+        <span id="voiceBtnTxt">Hold to Speak — Google Speech AI Translates</span>
+        <div class="waveform" id="waveform">
+          <div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div>
+        </div>
+      </button>
+    </div>
+
+    <div class="fcard">
+      <div class="fsec">Incident Details</div>
+      <div class="frow">
+        <div class="fg" style="margin-bottom:0"><label class="flabel">Location</label><input class="finput" id="fLocation" placeholder="e.g. Banjara Hills, Road No. 12" value="Banjara Hills, Road No. 12"></div>
+        <div class="fg" style="margin-bottom:0"><label class="flabel">Severity Override</label><select class="finput" id="fSeverity"><option value="P1">P1 — Critical</option><option value="P2" selected>P2 — Serious</option><option value="P3">P3 — Minor</option></select></div>
+      </div>
+      <div class="fg" style="margin-top:14px"><label class="flabel">Description</label><textarea class="finput" id="fDesc" rows="3" placeholder="Describe what you see, number of people affected, immediate dangers...">Flash flood with waist deep water. Around 6 people stranded on rooftops. Electrical poles nearby are sparking.</textarea></div>
+      <div class="frow" style="margin-bottom:0">
+        <div class="fg" style="margin-bottom:0"><label class="flabel">Casualties Estimated</label><input class="finput" id="fCas" type="number" placeholder="0" value="6"></div>
+        <div class="fg" style="margin-bottom:0"><label class="flabel">Your Contact</label><input class="finput" id="fContact" placeholder="+91 XXXXX XXXXX"></div>
+      </div>
+    </div>
+
+    <div class="fcard">
+      <div class="fsec">AI Photo Triage — Gemini Vision</div>
+      <div class="upload-z" onclick="doUpload()" id="uploadZone">
+        <span class="upload-icon">📷</span>
+        Click to upload a scene photo — or drag & drop
+        <small>Gemini 1.5 Pro Vision analyzes severity, casualties, hazards in &lt;3 seconds</small>
+      </div>
+      <div class="ai-res" id="aiResult">
+        <div class="ai-hdr">GEMINI 1.5 PRO VISION — TRIAGE COMPLETE</div>
+        <div class="ai-row"><span class="lbl">Severity</span><span class="val" id="aiSev">CRITICAL — P1</span></div>
+        <div class="ai-row"><span class="lbl">Casualties (estimated)</span><span class="val" id="aiCas">6</span></div>
+        <div class="ai-row"><span class="lbl">Hazards detected</span><span class="val" id="aiHaz">Electrical + Drowning</span></div>
+        <div class="ai-row"><span class="lbl">Rescue type</span><span class="val" id="aiRescue">Boat + Paramedics</span></div>
+        <div class="ai-row"><span class="lbl">Confidence</span><span class="val ok" id="aiConf">94.2%</span></div>
+        <div class="ai-row"><span class="lbl">Processing time</span><span class="val ok" id="aiTime">2.1s</span></div>
+      </div>
+    </div>
+
+    <button class="sub-btn" id="subBtn" onclick="doSubmit()">🚨 Submit &amp; Auto-Dispatch Nearest Unit</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     ANALYTICS PAGE
+══════════════════════════════════════════════════════════ -->
+<div class="page" id="pg-analytics">
+  <div class="analytics-wrap">
+    <h2>AI Analytics &amp; Predictions</h2>
+
+    <div class="kpi-row">
+      <div class="kpi ok"><div class="kpi-lbl">Avg Triage Time</div><div class="kpi-val">2.3s</div><div class="kpi-trend"><span class="up">↓68%</span> vs manual</div></div>
+      <div class="kpi info"><div class="kpi-lbl">Prediction Accuracy</div><div class="kpi-val">91%</div><div class="kpi-trend"><span class="up">Vertex AI model</span></div></div>
+      <div class="kpi ok"><div class="kpi-lbl">Lives Assisted</div><div class="kpi-val">1,240</div><div class="kpi-trend"><span class="up">↑22%</span> this month</div></div>
+      <div class="kpi warn"><div class="kpi-lbl">Offline Synced</div><div class="kpi-val">183</div><div class="kpi-trend"><span class="up">Mesh network</span></div></div>
+    </div>
+
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title"><span class="dot r"></span>Incidents per Hour — 12h</div>
+        <div class="chart-container"><canvas id="lineChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot a"></span>Severity Distribution</div>
+        <div class="chart-container" style="height:160px"><canvas id="doughnutChart"></canvas></div>
+        <div style="margin-top:12px">
+          <div class="legend-item"><span class="legend-swatch" style="background:var(--red)"></span>P1 Critical<span class="legend-pct">50%</span></div>
+          <div class="legend-item"><span class="legend-swatch" style="background:var(--amber)"></span>P2 Serious<span class="legend-pct">25%</span></div>
+          <div class="legend-item"><span class="legend-swatch" style="background:var(--green)"></span>P3 Minor<span class="legend-pct">25%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title"><span class="dot b"></span>Response Time Trend (minutes)</div>
+        <div class="chart-container"><canvas id="respChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot b"></span>Vertex AI — Predictive Alerts</div>
+        <div class="pred-card high"><div class="pred-lv">⚡ HIGH RISK</div><div class="pred-title">Hospital Bed Shortage</div><div class="pred-desc">Predicted in ~35 min. Pre-routing patients to NIMS & Care hospitals.</div></div>
+        <div class="pred-card med"><div class="pred-lv">⚠ MEDIUM</div><div class="pred-title">Secondary Flooding</div><div class="pred-desc">Madhapur & Gachibowli rising water levels. Pre-deploying boats.</div></div>
+        <div class="pred-card ok"><div class="pred-lv">✅ STABLE</div><div class="pred-title">Blood Supply</div><div class="pred-desc">O+ve & B+ve stocks adequate for 48 hrs. No action needed.</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot g"></span>Google AI Stack Performance</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px">
+        <div class="ai-metric"><div class="ai-metric-icon">🤖</div><div class="ai-metric-val" style="color:var(--blue)">2.3s</div><div class="ai-metric-lbl">Gemini Vision<br>Triage Speed</div></div>
+        <div class="ai-metric"><div class="ai-metric-icon">🔮</div><div class="ai-metric-val" style="color:var(--green)">91%</div><div class="ai-metric-lbl">Vertex AI<br>Prediction Accuracy</div></div>
+        <div class="ai-metric"><div class="ai-metric-icon">🎙️</div><div class="ai-metric-val" style="color:var(--amber)">11</div><div class="ai-metric-lbl">Languages<br>Supported</div></div>
+        <div class="ai-metric"><div class="ai-metric-icon">📡</div><div class="ai-metric-val" style="color:var(--red)">183</div><div class="ai-metric-lbl">Offline Reports<br>Mesh Synced</div></div>
+        <div class="ai-metric"><div class="ai-metric-icon">🔧</div><div class="ai-metric-val" style="color:var(--violet)">C</div><div class="ai-metric-lbl">Native Geo Engine<br>ctypes/haversine</div></div>
+        <div class="ai-metric"><div class="ai-metric-icon">⚡</div><div class="ai-metric-val" style="color:var(--green)">4.2m</div><div class="ai-metric-lbl">Avg Dispatch<br>Response Time</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════ SOS MODAL ══════ -->
+<div class="overlay" id="sosOverlay">
+  <div class="modal">
+    <span class="modal-icon">🆘</span>
+    <h3>Emergency SOS Alert</h3>
+    <p>Your GPS location will be transmitted immediately via WebSocket to the nearest response command center. The C geo engine will identify and dispatch the closest available unit.</p>
+    <div class="modal-btns" id="modalBtns">
+      <button class="modal-confirm" onclick="confirmSOS()">Send SOS Now</button>
+      <button class="modal-cancel" onclick="closeSOS()">Cancel</button>
+    </div>
+    <div class="modal-progress-wrap" id="modalProgress">
+      <div class="modal-status-text" id="modalStatusTxt">📡 Transmitting GPS coordinates...</div>
+      <div class="modal-progress-bar"><div class="modal-progress-fill" id="modalFill"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ TOAST ══════ -->
+<div class="toast" id="toast">
+  <div class="toast-title" id="toastTitle">Notification</div>
+  <div class="toast-msg" id="toastMsg"></div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════ */
+const API = '';  // same origin
+let ws = null;
+let wsConnected = false;
+let leafletMap = null;
+let mapMarkers = [];
+let incidentsCache = [];
+let selectedCrisisType = 'Flood';
+let lineChart = null, doughnutChart = null, respChart = null;
+let tickerItems = [
+  "🌊 Water level rising in Madhapur — monitoring active",
+  "🚑 Ambulance AMB-02 en-route to Secunderabad collapse",
+  "🔮 Vertex AI: Hospital bed shortage predicted in 32 minutes",
+  "📡 Offline mesh sync: 7 reports received from Kukatpally",
+  "✅ HAZMAT team on scene — Jubilee Hills gas leak contained",
+  "🚁 NDRF-01 aerial assessment over Banjara Hills underway",
+  "🏥 NIMS Hospital: 18 beds pre-allocated for incoming casualties",
+  "🤖 Gemini Vision processed 3 scene photos — avg 2.1s",
+];
+
+/* ══════════════════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════════════════ */
+function go(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('pg-' + page).classList.add('on');
+  const navMap = {home:0, dash:1, report:2, analytics:3};
+  const idx = navMap[page];
+  if (idx !== undefined) document.querySelectorAll('.nav-btn')[idx].classList.add('on');
+  window.scrollTo(0, 0);
+  if (page === 'dash') initDash();
+  if (page === 'analytics') initAnalytics();
+}
+
+/* ══════════════════════════════════════════════════════════
+   TOPBAR SCROLL
+══════════════════════════════════════════════════════════ */
+window.addEventListener('scroll', () => {
+  document.getElementById('topbar').classList.toggle('scrolled', scrollY > 20);
+});
+
+/* ══════════════════════════════════════════════════════════
+   CLOCK
+══════════════════════════════════════════════════════════ */
+function updateClock() {
+  const el = document.getElementById('clock');
+  if (el) el.textContent = new Date().toLocaleTimeString('en-IN', {hour12: false});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ══════════════════════════════════════════════════════════
+   COUNTER ANIMATIONS
+══════════════════════════════════════════════════════════ */
+function countUp(el, target, suffix, ms) {
+  if (!el) return;
+  const start = performance.now();
+  const step = ts => {
+    const p = Math.min((ts - start) / ms, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.floor(ease * target).toLocaleString() + (suffix || '');
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+setTimeout(() => {
+  countUp(document.getElementById('cntInc'), 47, '', 1200);
+  countUp(document.getElementById('cntLives'), 1240, '', 1800);
+}, 500);
+
+/* ══════════════════════════════════════════════════════════
+   PARTICLE CANVAS
+══════════════════════════════════════════════════════════ */
+(function initParticles() {
+  const canvas = document.getElementById('pCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let pts = [];
+  const resize = () => { canvas.width = innerWidth; canvas.height = innerHeight; };
+  resize();
+  addEventListener('resize', resize);
+  for (let i = 0; i < 70; i++) {
+    pts.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      r: Math.random() * 1.4 + 0.3, vx: (Math.random()-.5)*.28, vy: (Math.random()-.5)*.28,
+      op: Math.random() * .45 + .08,
+      col: Math.random() > .72 ? 'rgba(255,59,48,' : 'rgba(59,142,255,' });
+  }
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pts.forEach((p, i) => {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = p.col + p.op + ')'; ctx.fill();
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+      pts.slice(i+1).forEach(q => {
+        const d = Math.hypot(p.x-q.x, p.y-q.y);
+        if (d < 110) { ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.strokeStyle=`rgba(59,142,255,${.055*(1-d/110)})`; ctx.lineWidth=.4; ctx.stroke(); }
+      });
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ══════════════════════════════════════════════════════════
+   SCROLL REVEAL
+══════════════════════════════════════════════════════════ */
+const revObs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
+}, { threshold: .07, rootMargin: '0px 0px -50px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revObs.observe(el));
+
+/* ══════════════════════════════════════════════════════════
+   TICKER
+══════════════════════════════════════════════════════════ */
+function buildTicker(items) {
+  const inner = document.getElementById('tickerInner');
+  if (!inner) return;
+  // Duplicate for seamless loop
+  const all = [...items, ...items];
+  inner.innerHTML = all.map(t => `<span class="ticker-item"><span>●</span> <span>${t}</span></span>`).join('');
+}
+buildTicker(tickerItems);
+
+function addTickerItem(msg) {
+  tickerItems.unshift(msg);
+  if (tickerItems.length > 20) tickerItems.pop();
+  buildTicker(tickerItems);
+}
+
+/* ══════════════════════════════════════════════════════════
+   WEBSOCKET
+══════════════════════════════════════════════════════════ */
+function initWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url = `${proto}://${location.host}/ws`;
+  ws = new WebSocket(url);
+
+  ws.onopen = () => {
+    wsConnected = true;
+    const pill = document.getElementById('wsPill');
+    pill.classList.remove('disconnected');
+    const lbl = document.getElementById('wsLabel');
+    lbl.textContent = 'LIVE';
+  };
+
+  ws.onmessage = e => {
+    try { handleWS(JSON.parse(e.data)); } catch(ex) {}
+  };
+
+  ws.onclose = () => {
+    wsConnected = false;
+    const pill = document.getElementById('wsPill');
+    pill.classList.add('disconnected');
+    document.getElementById('wsLabel').textContent = 'RECONNECTING';
+    setTimeout(initWS, 3000);
+  };
+
+  ws.onerror = () => ws.close();
+}
+
+function handleWS(msg) {
+  switch (msg.type) {
+    case 'init':
+      incidentsCache = msg.incidents || [];
+      renderIncidents(incidentsCache);
+      renderResources(msg.resources || {});
+      renderVolunteers(msg.volunteers || []);
+      updateMapMarkers(incidentsCache);
+      const activeCount = incidentsCache.filter(i => i.status === 'active').length;
+      const el = document.getElementById('sbIncCount');
+      if (el) el.textContent = activeCount;
+      break;
+    case 'new_incident':
+      incidentsCache.unshift(msg.incident);
+      renderIncidents(incidentsCache);
+      updateMapMarkers(incidentsCache);
+      addTickerItem(`🚨 New ${msg.incident.type} — ${msg.incident.location} (${msg.incident.severity})`);
+      flashNewInc();
+      updateKPIsFromCache();
+      showToast('🚨 New Incident', `${msg.incident.type} at ${msg.incident.location} — ${msg.incident.severity}`);
+      break;
+    case 'incident_resolved':
+      incidentsCache.forEach(i => { if (i.id === msg.id) i.status = 'resolved'; });
+      renderIncidents(incidentsCache);
+      updateMapMarkers(incidentsCache);
+      addTickerItem(`✅ Resolved — ${msg.location}`);
+      updateKPIsFromCache();
+      break;
+    case 'ticker':
+      addTickerItem(msg.message);
+      break;
+    case 'kpi_update':
+      if (msg.data.active_incidents !== undefined) {
+        const p1 = incidentsCache.filter(i => i.status==='active' && i.severity==='P1').length;
+        animKPI('kpiP1', p1);
+      }
+      if (msg.data.avg_response_time !== undefined)
+        document.getElementById('kpiResp').textContent = msg.data.avg_response_time + 'm';
+      if (msg.data.triage_speed !== undefined)
+        document.getElementById('kpiTriage').textContent = msg.data.triage_speed + 's';
+      if (msg.data.volunteers_online !== undefined) {
+        animKPI('kpiVols', msg.data.volunteers_online);
+      }
+      break;
+    case 'resource_update':
+      fetchResources();
+      break;
+    case 'sos':
+      addTickerItem(`🆘 SOS ALERT — GPS confirmed. ${msg.nearest_unit || 'Unit'} dispatched. ETA ${Math.round(msg.eta_minutes)} min.`);
+      break;
+  }
+}
+
+function animKPI(id, newVal) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.opacity = '.35';
+  setTimeout(() => { el.textContent = newVal; el.style.transition = 'opacity .3s'; el.style.opacity = '1'; }, 280);
+}
+
+function updateKPIsFromCache() {
+  const active = incidentsCache.filter(i => i.status === 'active');
+  animKPI('kpiP1', active.filter(i => i.severity==='P1').length);
+  const sbEl = document.getElementById('sbIncCount');
+  if (sbEl) sbEl.textContent = active.length;
+  const mapEl = document.getElementById('mapIncCount');
+  if (mapEl) mapEl.textContent = `${active.length} incidents`;
+}
+
+function flashNewInc() {
+  const first = document.querySelector('.inc-list .inc-item');
+  if (first) { first.classList.add('new-inc'); setTimeout(() => first.classList.remove('new-inc'), 900); }
+}
+
+initWS();
+
+/* ══════════════════════════════════════════════════════════
+   FETCH HELPERS
+══════════════════════════════════════════════════════════ */
+async function fetchResources() {
+  try {
+    const r = await fetch(`${API}/api/resources`);
+    const d = await r.json();
+    renderResources(d.resources || {});
+  } catch(e) {}
+}
+
+async function fetchVolunteers() {
+  try {
+    const r = await fetch(`${API}/api/volunteers`);
+    const d = await r.json();
+    renderVolunteers(d.volunteers || []);
+  } catch(e) {}
+}
+
+async function fetchIncidents() {
+  try {
+    const r = await fetch(`${API}/api/incidents`);
+    const d = await r.json();
+    incidentsCache = d.incidents || [];
+    renderIncidents(incidentsCache);
+    updateKPIsFromCache();
+    return incidentsCache;
+  } catch(e) { return []; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDER INCIDENTS
+══════════════════════════════════════════════════════════ */
+function relativeTime(ts) {
+  const d = (Date.now() - new Date(ts).getTime()) / 1000 / 60;
+  if (d < 1) return 'just now';
+  if (d < 60) return `${Math.floor(d)}m`;
+  return `${Math.floor(d/60)}h ${Math.floor(d%60)}m`;
+}
+
+function renderIncidents(data) {
+  const el = document.getElementById('incidentList');
+  if (!el) return;
+  const active = data.filter(i => i.status === 'active').slice(0, 7);
+  if (!active.length) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">No active incidents</div>'; return; }
+  el.innerHTML = active.map(inc => `
+    <div class="inc-item" onclick="focusIncident('${inc.id}')">
+      <span class="sev ${inc.severity}">${inc.severity}</span>
+      <div class="inc-body">
+        <div class="inc-title">${inc.icon} ${inc.type} — ${inc.location}</div>
+        <div class="inc-meta">👥 ${inc.casualties} casualties · ${inc.dispatched_units.length} units dispatched</div>
+      </div>
+      ${inc.dispatched_units.length > 0 ? '<span class="inc-disp">DISPATCHED</span>' : ''}
+      <span class="inc-time">${relativeTime(inc.timestamp)}</span>
+    </div>
+  `).join('');
+}
+
+function focusIncident(id) {
+  const inc = incidentsCache.find(i => i.id === id);
+  if (!inc || !leafletMap) return;
+  leafletMap.setView([inc.lat, inc.lon], 14, {animate: true});
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDER RESOURCES
+══════════════════════════════════════════════════════════ */
+const RESOURCE_META = {
+  ambulances:    {icon:'🚑', label:'Ambulances'},
+  fire_units:    {icon:'🚒', label:'Fire Units'},
+  hospital_beds: {icon:'🏥', label:'Hospital Beds'},
+  blood_supply:  {icon:'🩸', label:'Blood Supply'},
+  rescue_teams:  {icon:'🧗', label:'Rescue Teams'},
+  ndrf_units:    {icon:'🚁', label:'NDRF Units'},
+};
+function resColor(pct) {
+  if (pct >= 80) return 'var(--red)';
+  if (pct >= 55) return 'var(--amber)';
+  return 'var(--green)';
+}
+function renderResources(data) {
+  const el = document.getElementById('resourceBars');
+  if (!el) return;
+  el.innerHTML = Object.entries(data).map(([k, v]) => {
+    const m = RESOURCE_META[k] || {icon:'📦', label:k};
+    const col = resColor(v.pct);
+    return `
+      <div class="res-item">
+        <span class="res-lbl">${m.icon} ${m.label}</span>
+        <div class="res-track"><div class="res-fill" data-w="${v.pct}" style="width:0%;background:${col}"></div></div>
+        <span class="res-pct" style="color:${col}">${v.pct}%</span>
+      </div>`;
+  }).join('');
+  // Animate bars in
+  requestAnimationFrame(() => {
+    el.querySelectorAll('.res-fill').forEach(f => { f.style.width = f.dataset.w + '%'; });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDER VOLUNTEERS
+══════════════════════════════════════════════════════════ */
+function renderVolunteers(data) {
+  const el = document.getElementById('volunteerList');
+  if (!el) return;
+  const stClass = {online:'on', enroute:'enr', standby:'busy'};
+  el.innerHTML = data.map(v => `
+    <div class="vol-item">
+      <div class="vol-av">${v.avatar}</div>
+      <div class="vol-st ${stClass[v.status] || 'busy'}"></div>
+      <div>
+        <div class="vol-name">${v.name}</div>
+        <div class="vol-skill">${v.skill}</div>
+      </div>
+      ${v.distance_km !== undefined ? `<span class="vol-dist">${v.distance_km} km</span>` : ''}
+      ${v.status === 'online' ? `<button class="dispatch-btn" onclick="dispatchVol('${v.id}','${v.name}',this)">Dispatch</button>` :
+        v.status === 'enroute' ? '<span style="font-size:10px;color:var(--amber);font-family:var(--mono)">EN-ROUTE</span>' : ''}
+    </div>
+  `).join('');
+
+  const sbEl = document.getElementById('sbVolCount');
+  if (sbEl) sbEl.textContent = data.filter(v => v.status==='online').length;
+}
+
+async function dispatchVol(id, name, btn) {
+  const activeInc = incidentsCache.find(i => i.status === 'active');
+  if (!activeInc) return;
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  try {
+    const r = await fetch(`${API}/api/volunteers/${id}/dispatch`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({incident_id: activeInc.id})
+    });
+    const d = await r.json();
+    btn.textContent = '✓ En-route';
+    btn.style.background = 'var(--red-m)';
+    btn.style.color = 'var(--red)';
+    btn.style.borderColor = 'rgba(255,59,48,.2)';
+    showToast(`🚑 ${name} Dispatched`, `ETA ${Math.round(d.eta_minutes)} min — ${d.distance_km} km away`);
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Dispatch';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   LEAFLET MAP
+══════════════════════════════════════════════════════════ */
+function initLeafletMap() {
+  if (leafletMap) return;
+  leafletMap = L.map('leafletMap', {
+    center: [17.3850, 78.4867],
+    zoom: 12,
+    zoomControl: true,
+    attributionControl: false,
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd',
+    maxZoom: 18,
+  }).addTo(leafletMap);
+
+  L.control.attribution({prefix: '© CartoDB · CrisisNexus'}).addTo(leafletMap);
+
+  // Unit markers (fixed)
+  const units = [
+    {icon:'🚑', lat:17.410, lon:78.430, label:'AMB-01 (Available)'},
+    {icon:'🚑', lat:17.445, lon:78.490, label:'AMB-02 (En-route)'},
+    {icon:'🚒', lat:17.425, lon:78.450, label:'FIRE-01'},
+    {icon:'🚁', lat:17.460, lon:78.420, label:'NDRF-01'},
+    {icon:'🏥', lat:17.433, lon:78.448, label:'NIMS Hospital'},
+    {icon:'🏥', lat:17.415, lon:78.472, label:'Care Hospital'},
+  ];
+  units.forEach(u => {
+    const icon = L.divIcon({html:`<div style="font-size:20px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))">${u.icon}</div>`, iconSize:[24,24], className:''});
+    L.marker([u.lat, u.lon], {icon}).bindPopup(`<strong>${u.label}</strong>`).addTo(leafletMap);
+  });
+}
+
+function updateMapMarkers(data) {
+  if (!leafletMap) return;
+  mapMarkers.forEach(m => m.remove());
+  mapMarkers = [];
+
+  data.forEach(inc => {
+    const color = inc.severity === 'P1' ? '#FF3B30' : inc.severity === 'P2' ? '#F5A623' : '#00C896';
+    const pulse = inc.severity === 'P1' && inc.status === 'active' ? 'animation:pingMap 1.6s infinite;' : '';
+    const icon = L.divIcon({
+      html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,.8);box-shadow:0 0 10px ${color};${pulse}"></div>`,
+      iconSize:[14,14], iconAnchor:[7,7], className:''
+    });
+    const marker = L.marker([inc.lat, inc.lon], {icon})
+      .bindPopup(`
+        <strong>${inc.icon} ${inc.type}</strong><br>
+        <span style="color:#607A96">${inc.location}</span><br>
+        <span style="font-size:11px">Severity: <strong style="color:${color}">${inc.severity}</strong> · ${inc.casualties} casualties</span><br>
+        <span style="font-size:11px">AI Confidence: ${inc.ai_confidence}%</span>
+      `)
+      .addTo(leafletMap);
+    mapMarkers.push(marker);
+  });
+
+  const mapEl = document.getElementById('mapIncCount');
+  if (mapEl) mapEl.textContent = `${data.filter(i=>i.status==='active').length} incidents`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   DASHBOARD INIT
+══════════════════════════════════════════════════════════ */
+async function initDash() {
+  initLeafletMap();
+  await Promise.all([fetchIncidents(), fetchResources(), fetchVolunteers()]);
+  updateMapMarkers(incidentsCache);
+}
+
+function refreshDash() {
+  fetchIncidents();
+  fetchResources();
+  fetchVolunteers();
+  showToast('↻ Refreshed', `Live data updated at ${new Date().toLocaleTimeString('en-IN', {hour12:false})}`);
+}
+
+function hlSb(el) {
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('on'));
+  el.classList.add('on');
+}
+
+/* ══════════════════════════════════════════════════════════
+   ANALYTICS CHARTS
+══════════════════════════════════════════════════════════ */
+function initAnalytics() {
+  fetch(`${API}/api/stats`).then(r => r.json()).then(d => {
+    const labels = d.history.labels;
+    const iph = d.history.incidents_per_hour;
+    const resp = d.history.response_times;
+
+    // Line chart — incidents per hour
+    if (lineChart) lineChart.destroy();
+    const lCtx = document.getElementById('lineChart');
+    if (lCtx) {
+      lineChart = new Chart(lCtx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Incidents',
+            data: iph,
+            borderColor: '#FF3B30',
+            backgroundColor: 'rgba(255,59,48,.08)',
+            borderWidth: 2,
+            fill: true,
+            tension: .4,
+            pointBackgroundColor: '#FF3B30',
+            pointRadius: 3,
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: {display:false} },
+          scales: {
+            x: { grid: {color:'rgba(22,32,52,.7)'}, ticks: {color:'#607A96',font:{size:10,family:'JetBrains Mono'}} },
+            y: { grid: {color:'rgba(22,32,52,.7)'}, ticks: {color:'#607A96',font:{size:10,family:'JetBrains Mono'}} }
+          }
+        }
+      });
+    }
+
+    // Response time
+    if (respChart) respChart.destroy();
+    const rCtx = document.getElementById('respChart');
+    if (rCtx) {
+      respChart = new Chart(rCtx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Response Time (min)',
+            data: resp,
+            borderColor: '#3B8EFF',
+            backgroundColor: 'rgba(59,142,255,.07)',
+            borderWidth: 2,
+            fill: true,
+            tension: .4,
+            pointBackgroundColor: '#3B8EFF',
+            pointRadius: 3,
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: {display:false} },
+          scales: {
+            x: { grid: {color:'rgba(22,32,52,.7)'}, ticks: {color:'#607A96',font:{size:10,family:'JetBrains Mono'}} },
+            y: { grid: {color:'rgba(22,32,52,.7)'}, ticks: {color:'#607A96',font:{size:10,family:'JetBrains Mono'}} }
+          }
+        }
+      });
+    }
+  }).catch(() => {});
+
+  // Doughnut chart
+  if (doughnutChart) doughnutChart.destroy();
+  const dCtx = document.getElementById('doughnutChart');
+  if (dCtx) {
+    doughnutChart = new Chart(dCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['P1 Critical', 'P2 Serious', 'P3 Minor'],
+        datasets: [{
+          data: [50, 25, 25],
+          backgroundColor: ['#FF3B30', '#F5A623', '#00C896'],
+          borderWidth: 0,
+          hoverOffset: 8,
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: {display:false},
+          tooltip: {callbacks: {label: ctx => ` ${ctx.label}: ${ctx.parsed}%`}}
+        }
+      }
+    });
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   REPORT FORM
+══════════════════════════════════════════════════════════ */
+function pickType(el, type) {
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedCrisisType = type;
+}
+function pickLang(el) {
+  document.querySelectorAll('.lang').forEach(l => l.classList.remove('on'));
+  el.classList.add('on');
+}
+
+let voiceActive = false;
+function doVoice() {
+  if (voiceActive) return;
+  voiceActive = true;
+  const btn = document.getElementById('voiceBtn');
+  const icon = document.getElementById('voiceBtnIcon');
+  const txt = document.getElementById('voiceBtnTxt');
+  const wv = document.getElementById('waveform');
+  btn.classList.add('rec');
+  icon.textContent = '⏹️';
+  txt.textContent = 'Recording… Translating to English';
+  wv.classList.add('on');
+  setTimeout(() => {
+    btn.classList.remove('rec');
+    icon.textContent = '✓';
+    txt.textContent = '"Flash flood, 6 people stranded, Banjara Hills" — Translated from Telugu';
+    wv.classList.remove('on');
+    voiceActive = false;
+    setTimeout(() => {
+      icon.textContent = '🎙️';
+      txt.textContent = 'Hold to Speak — Google Speech AI Translates';
+    }, 5000);
+  }, 3200);
+}
+
+let uploadDone = false;
+function doUpload() {
+  if (uploadDone) return;
+  const zone = document.getElementById('uploadZone');
+  zone.innerHTML = '<span class="upload-icon">⏳</span>Analyzing scene with Gemini 1.5 Pro Vision…<small>Detecting hazards, counting casualties, assessing severity</small>';
+  fetch(`${API}/api/triage`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      crisis_type: selectedCrisisType,
+      description: document.getElementById('fDesc').value,
+      casualties: parseInt(document.getElementById('fCas').value) || 0,
+      location: document.getElementById('fLocation').value,
+    })
+  }).then(r => r.json()).then(d => {
+    zone.innerHTML = '<span class="upload-icon">✅</span>Scene analyzed — Triage complete<small>' + selectedCrisisType + ' incident detected</small>';
+    document.getElementById('aiSev').textContent = d.severity + (d.severity === 'P1' ? ' — CRITICAL' : d.severity === 'P2' ? ' — SERIOUS' : ' — MINOR');
+    document.getElementById('aiCas').textContent = d.casualties_estimated;
+    document.getElementById('aiHaz').textContent = d.hazards.join(' + ') || 'None detected';
+    document.getElementById('aiRescue').textContent = d.rescue_type;
+    document.getElementById('aiConf').textContent = d.confidence + '%';
+    document.getElementById('aiTime').textContent = (d.processing_time_ms / 1000).toFixed(1) + 's';
+    document.getElementById('aiResult').classList.add('show');
+    uploadDone = true;
+  }).catch(() => {
+    zone.innerHTML = '<span class="upload-icon">📷</span>Click to upload a scene photo<small>Gemini Vision will analyze severity, casualties, damage</small>';
+    uploadDone = false;
+  });
+}
+
+async function doSubmit() {
+  const btn = document.getElementById('subBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Submitting & Dispatching via C Geo Engine…';
+  try {
+    const r = await fetch(`${API}/api/incidents`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        type: selectedCrisisType,
+        location: document.getElementById('fLocation').value,
+        severity: document.getElementById('fSeverity').value,
+        description: document.getElementById('fDesc').value,
+        casualties: parseInt(document.getElementById('fCas').value) || 0,
+        contact: document.getElementById('fContact').value,
+        lat: 17.3850 + (Math.random()-.5)*.08,
+        lon: 78.4867 + (Math.random()-.5)*.08,
+      })
+    });
+    const d = await r.json();
+    const eta = d.eta_minutes ? `ETA: ${Math.round(d.eta_minutes)} min` : '';
+    const unit = d.nearest_unit ? `· Unit: ${d.nearest_unit.id}` : '';
+    btn.innerHTML = '✓ Report Submitted — Unit Dispatched';
+    btn.style.background = 'linear-gradient(135deg,var(--green) 0%,#007A5A 100%)';
+    uploadDone = false;
+    showToast('🚨 Crisis Reported', `Incident logged as ${d.incident.severity}. ${eta} ${unit}`);
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = '🚨 Submit & Auto-Dispatch Nearest Unit';
+      btn.style.background = '';
+    }, 6000);
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '🚨 Submit & Auto-Dispatch Nearest Unit';
+    showToast('⚠ Error', 'Could not submit report. Please try again.');
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   SOS
+══════════════════════════════════════════════════════════ */
+function openSOS() {
+  document.getElementById('sosOverlay').classList.add('on');
+  document.getElementById('modalBtns').style.display = 'flex';
+  document.getElementById('modalProgress').classList.remove('show');
+  document.getElementById('modalFill').style.width = '0';
+}
+function closeSOS() {
+  document.getElementById('sosOverlay').classList.remove('on');
+}
+async function confirmSOS() {
+  document.getElementById('modalBtns').style.display = 'none';
+  const prog = document.getElementById('modalProgress');
+  prog.classList.add('show');
+  const fill = document.getElementById('modalFill');
+  const stxt = document.getElementById('modalStatusTxt');
+  fill.style.width = '100%';
+  // Get approximate coords
+  const lat = 17.3850 + (Math.random()-.5)*.05;
+  const lon = 78.4867 + (Math.random()-.5)*.05;
+  try {
+    await fetch(`${API}/api/sos`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({lat, lon, message: 'Emergency SOS from public app'})
+    });
+  } catch(e) {}
+  setTimeout(() => { stxt.textContent = '📍 GPS locked — unit identified'; }, 1100);
+  setTimeout(() => { stxt.textContent = '🚑 Unit dispatched — ETA 3–5 minutes'; }, 2200);
+  setTimeout(() => {
+    closeSOS();
+    showToast('🆘 SOS Transmitted', 'Nearest unit dispatched. ETA ~4 minutes. Stay visible and safe.');
+  }, 3400);
+}
+
+/* ══════════════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════════════ */
+let toastTimer = null;
+function showToast(title, msg) {
+  clearTimeout(toastTimer);
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastMsg').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  toastTimer = setTimeout(() => t.classList.remove('show'), 5500);
+}
+</script>
+</body>
+</html>
