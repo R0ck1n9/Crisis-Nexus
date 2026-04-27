@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrisisNexus — Rapid Crisis Response Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080C12;
+    --bg2: #0D1420;
+    --bg3: #111928;
+    --surface: #16202E;
+    --surface2: #1C2A3C;
+    --border: #1E2D42;
+    --red: #FF3B30;
+    --red-dim: rgba(255,59,48,0.15);
+    --amber: #FFB800;
+    --amber-dim: rgba(255,184,0,0.12);
+    --green: #00D4AA;
+    --green-dim: rgba(0,212,170,0.12);
+    --blue: #2979FF;
+    --blue-dim: rgba(41,121,255,0.15);
+    --text: #E8EDF5;
+    --text2: #8899AA;
+    --text3: #4A5968;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    position: fixed; top:0; left:0; right:0; z-index:100;
+    height: 56px;
+    background: rgba(8,12,18,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 18px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--red);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .logo span { color: var(--red); }
+
+  .nav-tabs {
+    display: flex; gap: 4px;
+    background: var(--bg3);
+    border-radius: 10px;
+    padding: 4px;
+  }
+  .nav-tab {
+    padding: 6px 16px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .nav-tab.active {
+    background: var(--surface2);
+    color: var(--text);
+  }
+  .nav-tab:hover:not(.active) { color: var(--text); }
+
+  .topbar-right {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .pulse-dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(0,212,170,0.4); }
+    50% { opacity:0.8; box-shadow: 0 0 0 6px rgba(0,212,170,0); }
+  }
+  .status-text {
+    font-size: 12px;
+    color: var(--green);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .alert-btn {
+    background: var(--red);
+    color: white;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: 0.5px;
+    animation: alertPulse 3s infinite;
+  }
+  @keyframes alertPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(255,59,48,0.3); }
+    50% { box-shadow: 0 0 0 8px rgba(255,59,48,0); }
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; padding-top: 56px; min-height: 100vh; }
+  .page.active { display: block; }
+
+  /* ── HERO / LANDING ── */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 80px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -200px; left: 50%; transform: translateX(-50%);
+    width: 800px; height: 800px;
+    background: radial-gradient(circle, rgba(255,59,48,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--red-dim);
+    border: 1px solid rgba(255,59,48,0.3);
+    color: var(--red);
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(48px, 8vw, 88px);
+    font-weight: 800;
+    line-height: 1.0;
+    margin-bottom: 12px;
+    letter-spacing: -2px;
+  }
+  .hero h1 .accent { color: var(--red); }
+  .hero-sub {
+    font-size: 18px;
+    color: var(--text2);
+    max-width: 560px;
+    line-height: 1.6;
+    margin-bottom: 48px;
+    font-weight: 300;
+  }
+  .hero-stats {
+    display: flex; gap: 48px; margin-bottom: 56px;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .hero-stat { text-align: center; }
+  .hero-stat .num {
+    font-family: 'Syne', sans-serif;
+    font-size: 40px;
+    font-weight: 800;
+    display: block;
+  }
+  .hero-stat .lbl { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .hero-stat:nth-child(1) .num { color: var(--red); }
+  .hero-stat:nth-child(2) .num { color: var(--amber); }
+  .hero-stat:nth-child(3) .num { color: var(--green); }
+
+  .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn-primary {
+    background: var(--red);
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .btn-primary:hover { background: #e02e25; transform: translateY(-1px); }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { background: var(--surface2); transform: translateY(-1px); }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    max-width: 1100px;
+    margin: 80px auto 0;
+    padding: 0 24px;
+  }
+  .feat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .feat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .feat-card.red::before { background: var(--red); }
+  .feat-card.amber::before { background: var(--amber); }
+  .feat-card.green::before { background: var(--green); }
+  .feat-card.blue::before { background: var(--blue); }
+  .feat-card:hover { border-color: var(--surface2); transform: translateY(-2px); }
+  .feat-icon {
+    font-size: 28px;
+    margin-bottom: 16px;
+    display: block;
+  }
+  .feat-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .feat-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+  /* ── DASHBOARD ── */
+  .dashboard {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 56px);
+  }
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .sidebar-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 8px 0 4px;
+  }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text2);
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+  .sidebar-item:hover, .sidebar-item.active {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .sidebar-item.active { color: var(--red); }
+  .sidebar-badge {
+    margin-left: auto;
+    background: var(--red);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 100px;
+  }
+  .sidebar-badge.amber { background: var(--amber); color: #000; }
+  .sidebar-badge.green { background: var(--green); color: #000; }
+
+  .main-content {
+    padding: 24px;
+    overflow-y: auto;
+  }
+
+  .dash-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap; gap: 12px;
+  }
+  .dash-header h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .time-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text2);
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  @media(max-width:900px) { .kpi-row { grid-template-columns: repeat(2,1fr); } }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-label {
+    font-size: 11px;
+    color: var(--text2);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .kpi-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+  }
+  .kpi-card.crit .kpi-value { color: var(--red); }
+  .kpi-card.warn .kpi-value { color: var(--amber); }
+  .kpi-card.ok .kpi-value { color: var(--green); }
+  .kpi-card.info .kpi-value { color: var(--blue); }
+  .kpi-trend {
+    font-size: 11px;
+    margin-top: 6px;
+    color: var(--text3);
+  }
+  .kpi-trend span { color: var(--green); }
+  .kpi-card.crit .kpi-trend span { color: var(--red); }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media(max-width:800px) { .grid-2 { grid-template-columns: 1fr; } }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+    color: var(--text);
+  }
+  .card-title .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--red);
+  }
+  .card-title .dot.green { background: var(--green); }
+  .card-title .dot.amber { background: var(--amber); }
+  .card-title .dot.blue { background: var(--blue); }
+
+  /* MAP MOCK */
+  .map-mock {
+    background: var(--bg3);
+    border-radius: 10px;
+    height: 300px;
+    position: relative;
+    overflow: hidden;
+  }
+  .map-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(30,45,66,0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,45,66,0.5) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .map-label {
+    position: absolute;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text3);
+  }
+  .map-pin {
+    position: absolute;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .map-pin:hover { transform: scale(1.5); }
+  .map-pin.critical { background: var(--red); box-shadow: 0 0 12px var(--red); }
+  .map-pin.warning { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+  .map-pin.active { background: var(--green); }
+  .map-pin.pulse { animation: mapPulse 1.5s infinite; }
+  @keyframes mapPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255,59,48,0.6); }
+    100% { box-shadow: 0 0 0 20px rgba(255,59,48,0); }
+  }
+  .map-tooltip {
+    position: absolute;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .map-pin:hover + .map-tooltip { opacity: 1; }
+
+  /* INCIDENT LIST */
+  .incident-list { display: flex; flex-direction: column; gap: 8px; }
+  .incident-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px;
+    background: var(--bg3);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .incident-item:hover { border-color: var(--surface2); }
+  .sev-badge {
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+  }
+  .sev-badge.P1 { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,59,48,0.3); }
+  .sev-badge.P2 { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,184,0,0.3); }
+  .sev-badge.P3 { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,212,170,0.3); }
+  .inc-info { flex: 1; }
+  .inc-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .inc-meta { font-size: 11px; color: var(--text3); }
+  .inc-time {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+  }
+
+  /* AI TRIAGE */
+  .triage-card {
+    background: var(--bg3);
+    border-radius: 10px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .triage-img {
+    width: 56px; height: 56px;
+    border-radius: 8px;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .triage-info { flex: 1; }
+  .triage-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .triage-desc { font-size: 11px; color: var(--text2); margin-bottom: 8px; }
+  .triage-score {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .triage-tag {
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .triage-tag.high { background: var(--red-dim); color: var(--red); }
+  .triage-tag.med { background: var(--amber-dim); color: var(--amber); }
+  .triage-tag.low { background: var(--green-dim); color: var(--green); }
+  .triage-tag.ai { background: var(--blue-dim); color: var(--blue); }
+  .confidence-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .confidence-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--green);
+    transition: width 1s ease;
+  }
+
+  /* RESOURCE BARS */
+  .resource-item {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 14px;
+  }
+  .resource-label { font-size: 12px; color: var(--text2); width: 120px; flex-shrink: 0; }
+  .resource-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .resource-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1.5s ease;
+  }
+  .resource-pct { font-size: 11px; font-family: 'JetBrains Mono', monospace; width: 32px; text-align: right; flex-shrink: 0; }
+
+  /* VOLUNTEER LIST */
+  .vol-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px;
+    background: var(--bg3);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+  }
+  .vol-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .vol-name { font-size: 13px; font-weight: 500; }
+  .vol-skill { font-size: 11px; color: var(--text2); }
+  .vol-dist { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--green); margin-left: auto; }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-dot.online { background: var(--green); }
+  .status-dot.busy { background: var(--amber); }
+
+  /* REPORT PAGE */
+  .report-layout {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 0 24px;
+  }
+  .report-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .report-header h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .report-header p { font-size: 14px; color: var(--text2); }
+
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 16px;
+  }
+  .form-section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .form-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; display: block; }
+  .form-control {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-control:focus { border-color: var(--red); }
+  .form-control::placeholder { color: var(--text3); }
+  select.form-control option { background: var(--bg2); }
+
+  .type-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .type-btn {
+    padding: 16px 10px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .type-btn .t-icon { font-size: 24px; display: block; margin-bottom: 6px; }
+  .type-btn:hover, .type-btn.selected {
+    border-color: var(--red);
+    background: var(--red-dim);
+    color: var(--text);
+  }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text2);
+    font-size: 13px;
+  }
+  .upload-zone:hover { border-color: var(--red); background: var(--red-dim); }
+  .upload-icon { font-size: 32px; display: block; margin-bottom: 8px; }
+
+  .voice-btn {
+    width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 14px;
+    background: var(--blue-dim);
+    border: 1px solid rgba(41,121,255,0.3);
+    border-radius: 10px;
+    color: var(--blue);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .voice-btn:hover { background: rgba(41,121,255,0.2); }
+
+  .ai-result-preview {
+    background: var(--bg3);
+    border: 1px solid var(--green);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .ai-result-preview .ai-label {
+    font-size: 10px;
+    color: var(--green);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .ai-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+  .ai-row .val { color: var(--red); font-weight: 600; }
+  .ai-row .val.ok { color: var(--green); }
+
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--red);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  .submit-btn:hover { background: #e02e25; transform: translateY(-1px); }
+
+  /* ANALYTICS PAGE */
+  .analytics-layout { padding: 24px; max-width: 1200px; }
+  .analytics-layout h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 24px;
+  }
+
+  .chart-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 120px;
+    padding-top: 10px;
+  }
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+  .bar-fill {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    background: var(--red);
+    opacity: 0.8;
+    transition: all 0.3s;
+    min-height: 4px;
+  }
+  .bar-fill:hover { opacity: 1; }
+  .bar-fill.amber { background: var(--amber); }
+  .bar-fill.green { background: var(--green); }
+  .bar-lbl { font-size: 9px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+
+  .pie-chart {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: conic-gradient(
+      var(--red) 0deg 180deg,
+      var(--amber) 180deg 270deg,
+      var(--green) 270deg 360deg
+    );
+    margin: 0 auto 16px;
+    position: relative;
+  }
+  .pie-center {
+    position: absolute;
+    inset: 20px;
+    background: var(--surface);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--red);
+  }
+
+  .legend-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* NOTIFICATION */
+  .notification {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--green);
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 13px;
+    max-width: 300px;
+    z-index: 200;
+    display: none;
+    animation: slideIn 0.3s ease;
+  }
+  .notification.show { display: block; }
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  .notif-title { font-weight: 600; color: var(--green); margin-bottom: 4px; font-size: 12px; }
+
+  /* SCROLL */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  @keyframes fadeIn {
+    from { opacity:0; transform: translateY(10px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+  .page.active { animation: fadeIn 0.3s ease; }
+
+  .lang-selector {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .lang-chip {
+    padding: 4px 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text2);
+  }
+  .lang-chip.active {
+    background: var(--blue-dim);
+    border-color: rgba(41,121,255,0.4);
+    color: var(--blue);
+  }
+
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 440px;
+    width: 90%;
+    text-align: center;
+    animation: fadeIn 0.3s ease;
+  }
+  .modal-icon { font-size: 48px; margin-bottom: 16px; }
+  .modal h3 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .modal p { font-size: 14px; color: var(--text2); margin-bottom: 24px; }
+  .modal-close {
+    background: var(--red); color: white;
+    border: none; padding: 12px 28px;
+    border-radius: 10px; font-size: 15px;
+    font-weight: 600; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">🚨</div>
+    Crisis<span>Nexus</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('home')">Overview</button>
+    <button class="nav-tab" onclick="showPage('dashboard')">Command Center</button>
+    <button class="nav-tab" onclick="showPage('report')">Report Crisis</button>
+    <button class="nav-tab" onclick="showPage('analytics')">AI Analytics</button>
+  </div>
+  <div class="topbar-right">
+    <div class="pulse-dot"></div>
+    <span class="status-text">LIVE • 247 UNITS ACTIVE</span>
+    <button class="alert-btn" onclick="openModal()">🔔 ALERT</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-icon">🚨</div>
+    <h3>Critical Alert Sent</h3>
+    <p>Gemini AI has auto-triaged and dispatched nearest emergency units. ETA: 4 min. All zone commanders notified.</p>
+    <button class="modal-close" onclick="closeModal()">Acknowledged</button>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div class="notification" id="notif">
+  <div class="notif-title">✅ GEMINI AI TRIAGE COMPLETE</div>
+  Severity: CRITICAL | 3 units dispatched | ETA 4 min
+</div>
+
+<!-- PAGE: HOME -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="hero-badge">🇮🇳 RAPID CRISIS RESPONSE • OPEN INNOVATION 2026</div>
+    <h1>Crisis<span class="accent">Nexus</span></h1>
+    <p class="hero-sub">The world's first multimodal, offline-capable AI crisis coordination OS. Powered by Gemini Vision, Vertex AI & Google Cloud.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><span class="num" id="cnt-incidents">0</span><span class="lbl">Active Incidents</span></div>
+      <div class="hero-stat"><span class="num" id="cnt-response">0s</span><span class="lbl">Avg. AI Triage Time</span></div>
+      <div class="hero-stat"><span class="num" id="cnt-saved">0</span><span class="lbl">Lives Assisted</span></div>
+    </div>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="showPage('dashboard')">Open Command Center →</button>
+      <button class="btn-secondary" onclick="showPage('report')">Report Crisis</button>
+    </div>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card red">
+      <span class="feat-icon">👁️</span>
+      <div class="feat-title">Gemini Vision Triage</div>
+      <div class="feat-desc">Upload a photo of the crisis scene. Gemini 1.5 Pro analyzes injury severity, infrastructure damage, and crowd density in seconds — no human judgment required for initial triage.</div>
+    </div>
+    <div class="feat-card amber">
+      <span class="feat-icon">🎙️</span>
+      <div class="feat-title">Multilingual Voice Reporting</div>
+      <div class="feat-desc">Report crises in Telugu, Hindi, Tamil, Kannada, or 8 other Indian languages. Google Speech-to-Text + Translation API converts voice to structured incident data instantly.</div>
+    </div>
+    <div class="feat-card green">
+      <span class="feat-icon">📡</span>
+      <div class="feat-title">Offline-First Mesh Sync</div>
+      <div class="feat-desc">Works when the internet is down during disasters. Devices form a local mesh network, syncing all incident data to the cloud the moment connectivity resumes.</div>
+    </div>
+    <div class="feat-card blue">
+      <span class="feat-icon">🔮</span>
+      <div class="feat-title">Predictive Resource AI</div>
+      <div class="feat-desc">Vertex AI analyzes historical crisis patterns to forecast resource shortages 30–60 minutes before they happen — ambulances, blood supply, rescue teams, and shelter capacity.</div>
+    </div>
+    <div class="feat-card amber">
+      <span class="feat-icon">🤝</span>
+      <div class="feat-title">Smart Volunteer Matching</div>
+      <div class="feat-desc">AI matches trained volunteers to active crises based on proximity, skill set, and current load. Doctors to medical emergencies, engineers to structural collapses, linguists to refugee zones.</div>
+    </div>
+    <div class="feat-card green">
+      <span class="feat-icon">🗺️</span>
+      <div class="feat-title">Live Crisis Heatmap</div>
+      <div class="feat-desc">Real-time situational awareness across a city/state with Google Maps Platform. Commanders see every active incident, resource deployment, and volunteer position at a glance.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: DASHBOARD -->
+<div class="page" id="page-dashboard">
+  <div class="dashboard">
+    <div class="sidebar">
+      <span class="sidebar-title">Incident Mgmt</span>
+      <div class="sidebar-item active">📍 Live Map <span class="sidebar-badge">12</span></div>
+      <div class="sidebar-item">🚨 Active Incidents <span class="sidebar-badge">7</span></div>
+      <div class="sidebar-item">✅ Resolved <span class="sidebar-badge green">28</span></div>
+      <span class="sidebar-title">Resources</span>
+      <div class="sidebar-item">🚑 Ambulances <span class="sidebar-badge amber">3</span></div>
+      <div class="sidebar-item">🚒 Fire Units</div>
+      <div class="sidebar-item">🏥 Hospitals</div>
+      <span class="sidebar-title">AI Tools</span>
+      <div class="sidebar-item">🤖 Gemini Triage <span class="sidebar-badge">Live</span></div>
+      <div class="sidebar-item">🔮 Predictions</div>
+      <div class="sidebar-item">👥 Volunteers <span class="sidebar-badge green">47</span></div>
+    </div>
+    <div class="main-content">
+      <div class="dash-header">
+        <h2>Command Center — Hyderabad Zone</h2>
+        <span class="time-display" id="clock">--:--:--</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-card crit">
+          <div class="kpi-label">Critical Incidents</div>
+          <div class="kpi-value">7</div>
+          <div class="kpi-trend"><span>↑3</span> in last hour</div>
+        </div>
+        <div class="kpi-card warn">
+          <div class="kpi-label">Units Dispatched</div>
+          <div class="kpi-value">23</div>
+          <div class="kpi-trend"><span class="ok">→ optimal</span></div>
+        </div>
+        <div class="kpi-card ok">
+          <div class="kpi-label">AI Triage Speed</div>
+          <div class="kpi-value">2.3s</div>
+          <div class="kpi-trend"><span>↓0.4s</span> vs last week</div>
+        </div>
+        <div class="kpi-card info">
+          <div class="kpi-label">Volunteers Online</div>
+          <div class="kpi-value">47</div>
+          <div class="kpi-trend"><span class="ok">12 available</span></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card" style="grid-column: 1/-1">
+          <div class="card-title"><span class="dot"></span>Live Crisis Map — Hyderabad</div>
+          <div class="map-mock">
+            <div class="map-grid"></div>
+            <span class="map-label" style="top:10px;left:14px;">HYDERABAD ZONE</span>
+            <span class="map-label" style="bottom:10px;right:14px;font-size:8px">© CrisisNexus Maps</span>
+            <!-- Pins -->
+            <div class="map-pin critical pulse" style="top:30%;left:25%" title="Flood - Banjara Hills"></div>
+            <div class="map-tooltip" style="top:22%;left:28%">🌊 Flood — Banjara Hills<br><span style="color:var(--red)">P1 Critical</span></div>
+            <div class="map-pin critical" style="top:55%;left:45%"></div>
+            <div class="map-pin warning" style="top:20%;left:60%"></div>
+            <div class="map-pin warning" style="top:70%;left:30%"></div>
+            <div class="map-pin active" style="top:45%;left:70%"></div>
+            <div class="map-pin active" style="top:60%;left:80%"></div>
+            <div class="map-pin warning" style="top:35%;left:55%"></div>
+            <!-- Resource units -->
+            <div style="position:absolute;top:38%;left:20%;font-size:16px;cursor:pointer" title="Ambulance dispatched">🚑</div>
+            <div style="position:absolute;top:62%;left:38%;font-size:16px;cursor:pointer">🚒</div>
+            <div style="position:absolute;top:48%;left:65%;font-size:16px">🏥</div>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:10px;font-size:12px">
+            <span>🔴 Critical (3)</span>
+            <span>🟡 Warning (3)</span>
+            <span>🟢 Resolved (6)</span>
+            <span>🚑 Units en-route (4)</span>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Active Incidents</div>
+          <div class="incident-list">
+            <div class="incident-item">
+              <span class="sev-badge P1">P1</span>
+              <div class="inc-info">
+                <div class="inc-title">Flash Flood — Banjara Hills</div>
+                <div class="inc-meta">📍 Road No.12 · 3 units dispatched</div>
+              </div>
+              <span class="inc-time">2m ago</span>
+            </div>
+            <div class="incident-item">
+              <span class="sev-badge P1">P1</span>
+              <div class="inc-info">
+                <div class="inc-title">Building Collapse — Secunderabad</div>
+                <div class="inc-meta">📍 SP Road · Search & Rescue active</div>
+              </div>
+              <span class="inc-time">8m ago</span>
+            </div>
+            <div class="incident-item">
+              <span class="sev-badge P2">P2</span>
+              <div class="inc-info">
+                <div class="inc-title">Gas Leak — Jubilee Hills</div>
+                <div class="inc-meta">📍 Film Nagar · Evacuation in progress</div>
+              </div>
+              <span class="inc-time">15m ago</span>
+            </div>
+            <div class="incident-item">
+              <span class="sev-badge P2">P2</span>
+              <div class="inc-info">
+                <div class="inc-title">Mass Casualty — Hitec City</div>
+                <div class="inc-meta">📍 Gachibowli · 12 patients triaged</div>
+              </div>
+              <span class="inc-time">22m ago</span>
+            </div>
+            <div class="incident-item">
+              <span class="sev-badge P3">P3</span>
+              <div class="inc-info">
+                <div class="inc-title">Power Outage — Old City</div>
+                <div class="inc-meta">📍 Charminar area · 5 localities</div>
+              </div>
+              <span class="inc-time">41m ago</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot ai" style="background:var(--blue)"></span>Gemini AI Triage Feed</div>
+          <div class="triage-card">
+            <div class="triage-img">🌊</div>
+            <div class="triage-info">
+              <div class="triage-title">Flood Scene Analysis</div>
+              <div class="triage-desc">Gemini detected waist-deep water, 6 stranded individuals, compromised electrical lines nearby.</div>
+              <div class="triage-score">
+                <span class="triage-tag high">CRITICAL</span>
+                <span class="triage-tag ai">Gemini Vision</span>
+                <span class="triage-tag low">Conf: 94%</span>
+              </div>
+              <div class="confidence-bar"><div class="confidence-fill" style="width:94%"></div></div>
+            </div>
+          </div>
+          <div class="triage-card">
+            <div class="triage-img">🏚️</div>
+            <div class="triage-info">
+              <div class="triage-title">Structural Collapse</div>
+              <div class="triage-desc">Partial 3-floor collapse. AI estimated 2–4 trapped. Shoring required before entry.</div>
+              <div class="triage-score">
+                <span class="triage-tag high">P1</span>
+                <span class="triage-tag ai">Gemini Vision</span>
+                <span class="triage-tag med">Conf: 87%</span>
+              </div>
+              <div class="confidence-bar"><div class="confidence-fill" style="width:87%;background:var(--amber)"></div></div>
+            </div>
+          </div>
+          <div class="triage-card">
+            <div class="triage-img">😷</div>
+            <div class="triage-info">
+              <div class="triage-title">Mass Casualty Scene</div>
+              <div class="triage-desc">12 individuals. AI classified 3 Critical, 5 Serious, 4 Minor. Sorted triage queue automatically.</div>
+              <div class="triage-score">
+                <span class="triage-tag med">SERIOUS</span>
+                <span class="triage-tag ai">Gemini Vision</span>
+                <span class="triage-tag low">Conf: 91%</span>
+              </div>
+              <div class="confidence-bar"><div class="confidence-fill" style="width:91%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="dot amber"></span>Resource Allocation</div>
+          <div class="resource-item">
+            <span class="resource-label">Ambulances</span>
+            <div class="resource-track"><div class="resource-fill" style="width:72%;background:var(--amber)"></div></div>
+            <span class="resource-pct" style="color:var(--amber)">72%</span>
+          </div>
+          <div class="resource-item">
+            <span class="resource-label">Fire Units</span>
+            <div class="resource-track"><div class="resource-fill" style="width:45%;background:var(--green)"></div></div>
+            <span class="resource-pct" style="color:var(--green)">45%</span>
+          </div>
+          <div class="resource-item">
+            <span class="resource-label">Hospital Beds</span>
+            <div class="resource-track"><div class="resource-fill" style="width:88%;background:var(--red)"></div></div>
+            <span class="resource-pct" style="color:var(--red)">88%</span>
+          </div>
+          <div class="resource-item">
+            <span class="resource-label">Blood Supply</span>
+            <div class="resource-track"><div class="resource-fill" style="width:31%;background:var(--blue)"></div></div>
+            <span class="resource-pct" style="color:var(--blue)">31%</span>
+          </div>
+          <div class="resource-item">
+            <span class="resource-label">Rescue Teams</span>
+            <div class="resource-track"><div class="resource-fill" style="width:60%;background:var(--amber)"></div></div>
+            <span class="resource-pct" style="color:var(--amber)">60%</span>
+          </div>
+          <div style="margin-top:12px;padding:10px;background:var(--red-dim);border:1px solid rgba(255,59,48,0.2);border-radius:8px;font-size:12px;">
+            ⚠️ <strong>Vertex AI Prediction:</strong> Hospital beds critical in ~35 min. Pre-allocating nearby facilities...
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot green"></span>Available Volunteers (AI-Matched)</div>
+          <div class="vol-item">
+            <div class="vol-avatar">👨‍⚕️</div>
+            <div class="status-dot online"></div>
+            <div>
+              <div class="vol-name">Dr. Priya Sharma</div>
+              <div class="vol-skill">Emergency Medicine · 8 yrs</div>
+            </div>
+            <span class="vol-dist">0.8 km</span>
+          </div>
+          <div class="vol-item">
+            <div class="vol-avatar">👷</div>
+            <div class="status-dot online"></div>
+            <div>
+              <div class="vol-name">Ravi Kumar</div>
+              <div class="vol-skill">Structural Engineer</div>
+            </div>
+            <span class="vol-dist">1.2 km</span>
+          </div>
+          <div class="vol-item">
+            <div class="vol-avatar">🚑</div>
+            <div class="status-dot busy"></div>
+            <div>
+              <div class="vol-name">Ananya Reddy</div>
+              <div class="vol-skill">Paramedic · Bilingual</div>
+            </div>
+            <span class="vol-dist" style="color:var(--amber)">En-route</span>
+          </div>
+          <div class="vol-item">
+            <div class="vol-avatar">🧑‍💻</div>
+            <div class="status-dot online"></div>
+            <div>
+              <div class="vol-name">Mohammed Ali</div>
+              <div class="vol-skill">Logistics Coordinator</div>
+            </div>
+            <span class="vol-dist">2.1 km</span>
+          </div>
+          <div class="vol-item">
+            <div class="vol-avatar">👩‍🔬</div>
+            <div class="status-dot online"></div>
+            <div>
+              <div class="vol-name">Lakshmi Devi</div>
+              <div class="vol-skill">Nurse · Telugu/Hindi</div>
+            </div>
+            <span class="vol-dist">0.5 km</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: REPORT -->
+<div class="page" id="page-report">
+  <div class="report-layout">
+    <div class="report-header">
+      <h2>🚨 Report a Crisis</h2>
+      <p>Powered by Gemini AI — your report is triaged automatically in &lt;3 seconds</p>
+    </div>
+
+    <div class="form-card">
+      <div class="form-section-title">Crisis Type</div>
+      <div class="type-grid">
+        <div class="type-btn selected" onclick="selectType(this)"><span class="t-icon">🌊</span>Flood</div>
+        <div class="type-btn" onclick="selectType(this)"><span class="t-icon">🔥</span>Fire</div>
+        <div class="type-btn" onclick="selectType(this)"><span class="t-icon">🏚️</span>Collapse</div>
+        <div class="type-btn" onclick="selectType(this)"><span class="t-icon">🚗</span>Accident</div>
+        <div class="type-btn" onclick="selectType(this)"><span class="t-icon">⚡</span>Hazard</div>
+        <div class="type-btn" onclick="selectType(this)"><span class="t-icon">🆘</span>Other</div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-section-title">Voice Report (Multilingual)</div>
+      <div class="lang-selector">
+        <span class="lang-chip active">English</span>
+        <span class="lang-chip" onclick="selectLang(this)">తెలుగు</span>
+        <span class="lang-chip" onclick="selectLang(this)">हिन्दी</span>
+        <span class="lang-chip" onclick="selectLang(this)">தமிழ்</span>
+        <span class="lang-chip" onclick="selectLang(this)">ಕನ್ನಡ</span>
+        <span class="lang-chip" onclick="selectLang(this)">മലയാളം</span>
+      </div>
+      <button class="voice-btn" onclick="simulateVoice()">🎙️ Hold to Speak in Any Language — Google Speech AI Translates</button>
+    </div>
+
+    <div class="form-card">
+      <div class="form-section-title">Incident Details</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input class="form-control" placeholder="e.g. Banjara Hills, Road No. 12" value="Banjara Hills, Road No. 12">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Severity</label>
+          <select class="form-control">
+            <option>P1 — Critical (Life Threatening)</option>
+            <option>P2 — Serious</option>
+            <option>P3 — Minor</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" rows="3" placeholder="Describe what you see, number of people affected, immediate dangers...">Flash flood with waist deep water. Around 6 people stranded on rooftops. Electrical poles nearby are sparking.</textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Casualties Estimated</label>
+          <input class="form-control" type="number" placeholder="0" value="6">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Your Contact</label>
+          <input class="form-control" placeholder="+91 XXXXX XXXXX">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-section-title">AI Photo Triage — Upload Scene Photo</div>
+      <div class="upload-zone" onclick="simulateUpload()">
+        <span class="upload-icon">📷</span>
+        Click to upload or drop a photo<br>
+        <span style="font-size:11px;color:var(--text3);margin-top:4px;display:block">Gemini Vision will auto-analyze severity, casualties, damage level</span>
+      </div>
+      <div class="ai-result-preview" id="aiResult" style="display:none">
+        <div class="ai-label">⚡ GEMINI 1.5 PRO VISION — TRIAGE COMPLETE (2.1s)</div>
+        <div class="ai-row"><span>Severity Classification</span><span class="val">CRITICAL — P1</span></div>
+        <div class="ai-row"><span>Visible Casualties</span><span class="val">6 (Est.)</span></div>
+        <div class="ai-row"><span>Hazard Detected</span><span class="val">Electrical + Drowning risk</span></div>
+        <div class="ai-row"><span>Rescue Type Required</span><span class="val">Boat + Paramedics</span></div>
+        <div class="ai-row"><span>Confidence Score</span><span class="val ok">94.2%</span></div>
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="submitReport()">🚨 Submit & Auto-Dispatch Nearest Units</button>
+  </div>
+</div>
+
+<!-- PAGE: ANALYTICS -->
+<div class="page" id="page-analytics">
+  <div class="analytics-layout">
+    <h2>AI Analytics & Predictions</h2>
+    <div class="kpi-row">
+      <div class="kpi-card ok">
+        <div class="kpi-label">Avg Triage Time</div>
+        <div class="kpi-value">2.3s</div>
+        <div class="kpi-trend"><span>↓68%</span> vs manual</div>
+      </div>
+      <div class="kpi-card info">
+        <div class="kpi-label">Prediction Accuracy</div>
+        <div class="kpi-value">91%</div>
+        <div class="kpi-trend"><span class="ok">Vertex AI model</span></div>
+      </div>
+      <div class="kpi-card ok">
+        <div class="kpi-label">Lives Assisted</div>
+        <div class="kpi-value">1,240</div>
+        <div class="kpi-trend"><span>↑22%</span> this month</div>
+      </div>
+      <div class="kpi-card warn">
+        <div class="kpi-label">Offline Incidents Synced</div>
+        <div class="kpi-value">183</div>
+        <div class="kpi-trend"><span class="ok">Mesh network</span></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Incidents by Type (This Week)</div>
+        <div class="chart-bar" id="barChart"></div>
+        <div style="display:flex;gap:12px;margin-top:10px;font-size:11px;flex-wrap:wrap">
+          <span style="color:var(--red)">🔴 Flood</span>
+          <span style="color:var(--amber)">🟡 Fire</span>
+          <span style="color:var(--green)">🟢 Medical</span>
+          <span style="color:var(--blue)">🔵 Accident</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot amber"></span>Incident Severity Distribution</div>
+        <div class="pie-chart"><div class="pie-center">47</div></div>
+        <div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--red)"></span>P1 Critical (50%)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span>P2 Serious (25%)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>P3 Minor (25%)</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-title"><span class="dot" style="background:var(--blue)"></span>Vertex AI — Predictive Alerts (Next 60 Minutes)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+        <div style="padding:14px;background:var(--red-dim);border:1px solid rgba(255,59,48,0.3);border-radius:10px">
+          <div style="font-size:11px;color:var(--red);font-family:'JetBrains Mono',monospace;margin-bottom:6px">⚡ HIGH RISK</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Hospital Bed Shortage</div>
+          <div style="font-size:11px;color:var(--text2)">Predicted in ~35 min. Pre-routing patients to NIMS & Care hospitals.</div>
+        </div>
+        <div style="padding:14px;background:var(--amber-dim);border:1px solid rgba(255,184,0,0.3);border-radius:10px">
+          <div style="font-size:11px;color:var(--amber);font-family:'JetBrains Mono',monospace;margin-bottom:6px">⚠ MEDIUM RISK</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Secondary Flooding</div>
+          <div style="font-size:11px;color:var(--text2)">Madhapur & Gachibowli zones show rising water levels. Pre-deploying boats.</div>
+        </div>
+        <div style="padding:14px;background:var(--amber-dim);border:1px solid rgba(255,184,0,0.3);border-radius:10px">
+          <div style="font-size:11px;color:var(--amber);font-family:'JetBrains Mono',monospace;margin-bottom:6px">⚠ MEDIUM RISK</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Volunteer Fatigue</div>
+          <div style="font-size:11px;color:var(--text2)">12 volunteers approaching 6-hr limit. Auto-requesting backup pool.</div>
+        </div>
+        <div style="padding:14px;background:var(--green-dim);border:1px solid rgba(0,212,170,0.3);border-radius:10px">
+          <div style="font-size:11px;color:var(--green);font-family:'JetBrains Mono',monospace;margin-bottom:6px">✅ STABLE</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Blood Supply</div>
+          <div style="font-size:11px;color:var(--text2)">O+ve & B+ve stocks adequate for 48 hrs. No action needed.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-title"><span class="dot green"></span>Google AI Stack Performance</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+        <div style="text-align:center;padding:16px;background:var(--bg3);border-radius:10px">
+          <div style="font-size:24px;margin-bottom:8px">🤖</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--blue)">2.3s</div>
+          <div style="font-size:11px;color:var(--text2)">Gemini Vision<br>Triage Speed</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:var(--bg3);border-radius:10px">
+          <div style="font-size:24px;margin-bottom:8px">🔮</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--green)">91%</div>
+          <div style="font-size:11px;color:var(--text2)">Vertex AI<br>Prediction Accuracy</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:var(--bg3);border-radius:10px">
+          <div style="font-size:24px;margin-bottom:8px">🎙️</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--amber)">11</div>
+          <div style="font-size:11px;color:var(--text2)">Languages<br>Speech-to-Text</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:var(--bg3);border-radius:10px">
+          <div style="font-size:24px;margin-bottom:8px">📡</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--red)">183</div>
+          <div style="font-size:11px;color:var(--text2)">Offline Reports<br>Synced via Mesh</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Navigation
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    const tabs = ['home','dashboard','report','analytics'];
+    document.querySelectorAll('.nav-tab')[tabs.indexOf(id)].classList.add('active');
+  }
+
+  // Clock
+  function updateClock() {
+    const el = document.getElementById('clock');
+    if (el) el.textContent = new Date().toLocaleTimeString('en-IN', {hour12:false});
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Animate hero counters
+  function animateCounter(id, end, suffix, duration) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let start = 0;
+    const step = end / (duration / 16);
+    const timer = setInterval(() => {
+      start = Math.min(start + step, end);
+      el.textContent = Math.floor(start) + suffix;
+      if (start >= end) clearInterval(timer);
+    }, 16);
+  }
+  setTimeout(() => {
+    animateCounter('cnt-incidents', 47, '', 1000);
+    animateCounter('cnt-response', 2, 's', 800);
+    animateCounter('cnt-saved', 1240, '', 1200);
+  }, 300);
+
+  // Bar chart
+  const barData = [
+    {v:85,c:'red'},{v:45,c:'amber'},{v:120,c:'green'},{v:67,c:'red'},{v:38,c:''},
+    {v:92,c:'amber'},{v:55,c:'green'}
+  ];
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const bc = document.getElementById('barChart');
+  if (bc) {
+    barData.forEach((d,i) => {
+      const col = document.createElement('div');
+      col.className = 'bar-col';
+      const fill = document.createElement('div');
+      fill.className = 'bar-fill ' + d.c;
+      fill.style.height = (d.v / 130 * 100) + '%';
+      fill.title = d.v + ' incidents';
+      const lbl = document.createElement('div');
+      lbl.className = 'bar-lbl';
+      lbl.textContent = days[i];
+      col.appendChild(fill); col.appendChild(lbl);
+      bc.appendChild(col);
+    });
+  }
+
+  // Form interactions
+  function selectType(el) {
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  function selectLang(el) {
+    document.querySelectorAll('.lang-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+  }
+  function simulateVoice() {
+    const btn = event.target;
+    btn.textContent = '🎙️ Listening... (Speak now in your language)';
+    btn.style.background = 'rgba(255,59,48,0.15)';
+    btn.style.borderColor = 'rgba(255,59,48,0.4)';
+    btn.style.color = 'var(--red)';
+    setTimeout(() => {
+      btn.textContent = '✅ Voice captured — Translated to English by Google API';
+      btn.style.background = 'var(--green-dim)';
+      btn.style.borderColor = 'rgba(0,212,170,0.4)';
+      btn.style.color = 'var(--green)';
+    }, 2500);
+  }
+  function simulateUpload() {
+    const res = document.getElementById('aiResult');
+    res.style.display = 'block';
+    showNotif();
+  }
+  function submitReport() {
+    document.getElementById('aiResult').style.display = 'block';
+    openModal();
+  }
+  function openModal() { document.getElementById('modal').classList.add('open'); }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+  function showNotif() {
+    const n = document.getElementById('notif');
+    n.classList.add('show');
+    setTimeout(() => n.classList.remove('show'), 4000);
+  }
+</script>
+</body>
+</html>
