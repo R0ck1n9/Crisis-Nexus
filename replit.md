@@ -1,83 +1,67 @@
-# CrisisNexus v2.0 — AI Crisis Response Platform
+# CrisisNexus v3.0 — Live Crisis Response Platform
 
 ## Overview
-India's AI-powered emergency response command platform. Submission-ready, fully interactive,
-professional dark-UI built for production scale.
+Real-time, multi-user crisis coordination platform for Hyderabad, India.
+Civilians submit reports; volunteers triage, dispatch, and resolve them.
+Everything is broadcast live via WebSocket — no fake data, no demo simulation.
 
 ## Architecture
-
-### Stack
 | Layer | Technology |
 |-------|-----------|
-| Backend | Python 3 + FastAPI + uvicorn (WebSocket) |
-| Geospatial | C shared library (geo_engine.so, GCC 14, -O2) via ctypes |
-| Frontend | Single-page HTML/CSS/JS (no framework, ~2000 lines) |
-| Real-time | WebSocket `/ws` + live simulation background task |
-| Maps | Leaflet.js 1.9.4 + CartoDB Dark Matter tiles |
-| Charts | Chart.js 4.4 (line, doughnut) |
+| Backend | Python 3.11 + FastAPI + uvicorn (WebSocket) |
+| Geospatial | C shared library (`geo_engine.so`, GCC -O2) via ctypes |
+| Frontend | Single-page HTML + vanilla JS (Leaflet, Chart.js) |
+| Real-time | WebSocket `/ws` with role-based presence tracking |
+| Maps | Leaflet + CARTO Dark tiles (free, no API key) |
+| Geocoding | Nominatim (OpenStreetMap) for address search |
+| Voice | Web Speech API (browser-native, English) |
 
-### Files
+## Files
 ```
-main.py             FastAPI backend — REST API, WebSocket, C integration
-geo_engine.c        Native C geospatial library source
-geo_engine.so       Compiled shared library (GCC 14, -O2)
-static/index.html   Complete professional frontend (~2200 lines)
-replit.md           This file
-```
-
-### Run Command
-```
-uvicorn main:app --host 0.0.0.0 --port 5000
+main.py             FastAPI backend — REST + WebSocket + audit log
+geo_engine.c/.so    Native C geospatial library (haversine, nearest, ETA)
+static/index.html   Full SPA with role-based UI
 ```
 
-## Design System — "NEXUS COMMAND"
-- **Typography**: Space Grotesk (display/headings), Inter (body), JetBrains Mono (data/labels)
-- **Palette**: Deep navy base (#06090F→#182036), Crimson accent (#B91C1C), Emerald OK (#0D9968), Amber warn (#B45309), Blue info (#1D4ED8)
-- **Icons**: Inline SVG sprite (16 custom icons, no external icon library)
-- **Animations**: GPU-only (transform/opacity) — no layout reflow
-- **Mobile**: Bottom tab nav at <768px, 44px+ touch targets, 16px min inputs
+## Roles
+- **Civilian** — simple home with two cards: Report Incident and SOS
+- **Volunteer / Manager** — full access: Overview, Command Center, Active Reports, Report, Analytics
 
-## Pages
-1. **Overview (Home)**: Split hero with particle canvas + live WebSocket command panel; 8-feature grid; 4-step workflow; SOS ring; tech stack; footer
-2. **Command Center**: Sidebar nav + main with KPI cards, Leaflet map, incident list (clickable detail panel), AI triage feed, resource bars, volunteer list with dispatch
-3. **Report Crisis**: Type picker (6 types), language chips (8 languages), voice simulation, photo AI triage (calls /api/triage), full form, auto-dispatch submit
-4. **Analytics**: 3 Chart.js charts, Vertex AI prediction cards, AI performance metrics
+Selected on first visit via onboarding modal; stored in localStorage.
 
-## C Geospatial Engine
-Compiled: `gcc -shared -fPIC -O2 -o geo_engine.so geo_engine.c -lm`
-
-Functions: haversine · find_nearest_unit · dispatch_score · estimate_eta_minutes · coverage_radius · batch_distances
-
-Used for: every SOS alert, incident dispatch, volunteer routing
+## Live Features
+- Real online presence count via WebSocket connections (no fake numbers)
+- Reports created on any device appear instantly on every connected client
+- SOS broadcasts caller's GPS location as a P1 incident with desktop notification
+- Voice → text via browser SpeechRecognition (English, free, mic permission)
+- Click-to-pin location picker in report form (or "use my location" / address search)
+- Hyderabad emergency services pre-marked: hospitals, fire, police, ambulance hubs
+- Fullscreen map toggle, recenter, service-layer toggle
+- Incidents sorted P1 → P2 → P3, then by recency
+- Volunteers can mark Dispatched (with units + note), Resolved, or Delete
+- Audit log captures every action with actor + timestamp
+- Charts (type, severity) update from real reports only
+- Live ticker shows only real events (no fake messages, no emojis)
 
 ## REST API
 ```
 GET  /api/health
-GET  /api/incidents?status=&severity=
-POST /api/incidents          (triggers C dispatch, AI triage)
+GET  /api/services             list of Hyderabad emergency services
+GET  /api/incidents?status=    sorted P1-first
+POST /api/incidents            create report
+POST /api/sos                  trigger SOS (auto P1)
 GET  /api/incidents/{id}
-PATCH /api/incidents/{id}/resolve
-POST /api/triage             (AI severity classification)
-GET  /api/resources
-GET  /api/units
-GET  /api/volunteers         (sorted by C haversine distance)
-POST /api/volunteers/{id}/dispatch
-POST /api/sos                (C engine nearest-unit routing)
-GET  /api/stats
-GET  /api/analytics/incidents-by-type
-WS   /ws
+POST /api/incidents/{id}/dispatch  mark dispatched (volunteer)
+POST /api/incidents/{id}/resolve   mark resolved (volunteer)
+DELETE /api/incidents/{id}         delete (volunteer)
+GET  /api/audit                latest 200 audit entries
+GET  /api/stats                live aggregate stats
+GET  /api/presence             online users
+WS   /ws?name=&role=
 ```
 
-## WebSocket Events
-`init` · `new_incident` · `incident_resolved` · `incident_update` · `ticker` · `kpi_update` · `resource_update` · `sos`
-
-## Key UX Features
-- Incident detail slide panel (click any incident → 360px right panel with full data + resolve/map buttons)
-- Live ticker auto-updates on new WebSocket events
-- Map markers pulse for critical (P1) incidents
-- Volunteer dispatch calls real `/api/volunteers/{id}/dispatch` endpoint
-- SOS modal with GPS simulation + progress animation
-- Toast notification system (top-right, auto-dismiss 5s)
-- Scroll-reveal animations (IntersectionObserver, no layout recalc)
-- Animated counter heroes on page load
-- Sidebar status badges update in real time
+## Run
+Workflow `Start application`:
+```
+uvicorn main:app --host 0.0.0.0 --port 5000
+```
