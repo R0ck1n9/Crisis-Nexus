@@ -593,11 +593,40 @@ body[data-role="volunteer"]{padding-bottom:42px;}
         <input type="text" class="form-input" id="loc-text" placeholder="Optional address / landmark" style="margin-top:8px;"/>
       </div>
       <div class="form-group">
-        <label class="form-label">Voice note → text (English)</label>
-        <button type="button" class="voice-btn" id="voice-btn" onclick="toggleVoice()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
-          <span id="voice-label">Tap to record description</span>
-        </button>
+        <label class="form-label">Voice note → text</label>
+        <div style="display:flex;gap:8px;align-items:stretch;">
+          <button type="button" class="voice-btn" id="voice-btn" onclick="toggleVoice()" style="flex:1;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
+            <span id="voice-label">Tap to record description</span>
+          </button>
+          <select id="voice-lang" class="form-input" style="width:auto;min-width:130px;font-size:12px;" title="Speech language">
+            <option value="auto">Auto-detect</option>
+            <option value="en-IN">English (India)</option>
+            <option value="en-US">English (US)</option>
+            <option value="en-GB">English (UK)</option>
+            <option value="hi-IN">हिन्दी Hindi</option>
+            <option value="te-IN">తెలుగు Telugu</option>
+            <option value="ta-IN">தமிழ் Tamil</option>
+            <option value="kn-IN">ಕನ್ನಡ Kannada</option>
+            <option value="ml-IN">മലയാളം Malayalam</option>
+            <option value="mr-IN">मराठी Marathi</option>
+            <option value="bn-IN">বাংলা Bengali</option>
+            <option value="gu-IN">ગુજરાતી Gujarati</option>
+            <option value="pa-IN">ਪੰਜਾਬੀ Punjabi</option>
+            <option value="ur-IN">اردو Urdu</option>
+            <option value="ar-SA">العربية Arabic</option>
+            <option value="zh-CN">中文 Chinese</option>
+            <option value="es-ES">Español Spanish</option>
+            <option value="fr-FR">Français French</option>
+            <option value="de-DE">Deutsch German</option>
+            <option value="ja-JP">日本語 Japanese</option>
+            <option value="ko-KR">한국어 Korean</option>
+            <option value="ru-RU">Русский Russian</option>
+            <option value="pt-BR">Português Portuguese</option>
+            <option value="it-IT">Italiano Italian</option>
+          </select>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:var(--muted);">Speech is appended — your existing text won't be erased. Pick "Auto-detect" to use your browser's default.</div>
       </div>
       <div class="form-group">
         <label class="form-label">Description</label>
@@ -1395,25 +1424,63 @@ let recog=null, recording=false;
 function toggleVoice(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){ toast('warn','Voice not supported','Use the latest Chrome or Safari.'); return; }
-  if(!recog){
-    recog = new SR();
-    recog.lang = 'en-IN';
-    recog.continuous = true;
-    recog.interimResults = true;
-    recog.onresult = (e)=>{
-      let txt='';
-      for(let i=e.resultIndex;i<e.results.length;i++) txt += e.results[i][0].transcript;
-      const ta = document.getElementById('desc');
-      ta.value = (ta.dataset.base||'') + txt;
-    };
-    recog.onend = ()=>{ recording=false; updateVoiceUI(); };
-    recog.onerror = (e)=>{ toast('warn','Voice error', e.error||'unknown'); };
-  }
+  const ta = document.getElementById('desc');
+  const langSel = document.getElementById('voice-lang');
+  const chosen = langSel ? langSel.value : 'auto';
+
+  // Always rebuild recognizer so a language change between sessions takes effect
+  if(recog){ try{ recog.abort(); }catch(e){} recog = null; }
+  recog = new SR();
+  if(chosen && chosen !== 'auto'){
+    recog.lang = chosen;
+  } // else: leave unset → browser uses system / page default
+  recog.continuous = true;
+  recog.interimResults = true;
+  recog.maxAlternatives = 1;
+
+  recog.onresult = (e)=>{
+    let interim = '';
+    for(let i=e.resultIndex; i<e.results.length; i++){
+      const res = e.results[i];
+      const transcript = res[0].transcript;
+      if(res.isFinal){
+        // Append finals permanently to base, so prior text is never erased
+        const base = ta.dataset.base || '';
+        const sep = base && !/\s$/.test(base) ? ' ' : '';
+        ta.dataset.base = base + sep + transcript.trim() + ' ';
+      } else {
+        interim += transcript;
+      }
+    }
+    ta.value = (ta.dataset.base || '') + interim;
+  };
+  recog.onend = ()=>{
+    // commit any pending interim into the textarea so nothing is lost
+    ta.dataset.base = ta.value.endsWith(' ') ? ta.value : (ta.value + ' ');
+    recording = false;
+    updateVoiceUI();
+  };
+  recog.onerror = (e)=>{
+    if(e.error === 'language-not-supported'){
+      toast('warn','Language not available','Your browser doesn\'t support that language. Try Chrome or pick another.');
+    } else if(e.error !== 'aborted' && e.error !== 'no-speech'){
+      toast('warn','Voice error', e.error || 'unknown');
+    }
+  };
+
   if(!recording){
-    document.getElementById('desc').dataset.base = (document.getElementById('desc').value+' ');
-    recog.start(); recording=true;
+    // Preserve whatever the user already typed
+    const cur = ta.value;
+    ta.dataset.base = cur && !/\s$/.test(cur) ? cur + ' ' : cur;
+    try{
+      recog.start();
+      recording = true;
+    }catch(err){
+      toast('warn','Could not start voice', err.message || 'try again');
+    }
   } else {
-    recog.stop(); recording=false;
+    recog.stop();
+    recording = false;
   }
   updateVoiceUI();
 }
