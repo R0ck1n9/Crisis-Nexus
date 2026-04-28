@@ -17,51 +17,102 @@ from typing import Any, Dict, List, Optional, Set
 
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 # ──────────────────────────────────────────────
-#  C Geospatial Engine
+#  C Geospatial Engine (with pure-Python fallback)
 # ──────────────────────────────────────────────
+import math as _math
+
 _geo = None
+_use_native = False
+
+def _py_haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371.0
+    dlat = _math.radians(lat2 - lat1)
+    dlon = _math.radians(lon2 - lon1)
+    a = (_math.sin(dlat / 2) ** 2
+         + _math.cos(_math.radians(lat1)) * _math.cos(_math.radians(lat2))
+         * _math.sin(dlon / 2) ** 2)
+    return R * 2 * _math.atan2(_math.sqrt(a), _math.sqrt(1 - a))
+
+def _py_find_nearest(inc_lat: float, inc_lon: float, lats: list, lons: list) -> int:
+    best, best_d = -1, float("inf")
+    for i, (la, lo) in enumerate(zip(lats, lons)):
+        d = _py_haversine(inc_lat, inc_lon, la, lo)
+        if d < best_d:
+            best_d, best = d, i
+    return best
+
+def _py_eta(distance_km: float, speed_kmh: float) -> float:
+    if speed_kmh <= 0:
+        return 0.0
+    return (distance_km / speed_kmh) * 60.0
+
 
 def load_geo_engine():
-    global _geo
-    so_path = os.path.join(os.path.dirname(__file__), "geo_engine.so")
+    global _geo, _use_native
+    import platform, shutil
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    if platform.system() == "Windows":
+        lib_name = "geo_engine.dll"
+        compile_cmd = ["gcc", "-shared", "-O2", "-o",
+                       os.path.join(base_dir, lib_name),
+                       os.path.join(base_dir, "geo_engine.c")]
+    else:
+        lib_name = "geo_engine.so"
+        compile_cmd = ["gcc", "-shared", "-fPIC", "-O2", "-o",
+                       os.path.join(base_dir, lib_name),
+                       os.path.join(base_dir, "geo_engine.c"), "-lm"]
+    so_path = os.path.join(base_dir, lib_name)
+    # Try to compile only if gcc is available
     if not os.path.exists(so_path):
+        if shutil.which("gcc") is None:
+            print("[geo_engine] gcc not found — using pure-Python fallback")
+            return
         import subprocess
-        subprocess.run(
-            ["gcc", "-shared", "-fPIC", "-O2", "-o", so_path, "geo_engine.c", "-lm"],
-            check=True
-        )
-    _geo = ctypes.CDLL(so_path)
-    _geo.haversine.restype = ctypes.c_double
-    _geo.haversine.argtypes = [ctypes.c_double, ctypes.c_double,
-                                ctypes.c_double, ctypes.c_double]
-    _geo.find_nearest_unit.restype = ctypes.c_int
-    _geo.find_nearest_unit.argtypes = [
-        ctypes.c_double, ctypes.c_double,
-        ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double),
-        ctypes.c_int
-    ]
-    _geo.estimate_eta_minutes.restype = ctypes.c_double
-    _geo.estimate_eta_minutes.argtypes = [ctypes.c_double, ctypes.c_double]
+        subprocess.run(compile_cmd, check=True)
+    try:
+        _geo = ctypes.CDLL(so_path)
+        _geo.haversine.restype = ctypes.c_double
+        _geo.haversine.argtypes = [ctypes.c_double, ctypes.c_double,
+                                    ctypes.c_double, ctypes.c_double]
+        _geo.find_nearest_unit.restype = ctypes.c_int
+        _geo.find_nearest_unit.argtypes = [
+            ctypes.c_double, ctypes.c_double,
+            ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double),
+            ctypes.c_int
+        ]
+        _geo.estimate_eta_minutes.restype = ctypes.c_double
+        _geo.estimate_eta_minutes.argtypes = [ctypes.c_double, ctypes.c_double]
+        _use_native = True
+        print("[geo_engine] native C library loaded")
+    except OSError as exc:
+        print(f"[geo_engine] failed to load .so/.dll ({exc}) — using pure-Python fallback")
 
 load_geo_engine()
 
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    return _geo.haversine(lat1, lon1, lat2, lon2)
+    if _use_native:
+        return _geo.haversine(lat1, lon1, lat2, lon2)
+    return _py_haversine(lat1, lon1, lat2, lon2)
 
 
 def find_nearest(inc_lat: float, inc_lon: float, units: list) -> int:
     n = len(units)
     if n == 0:
         return -1
-    lats = (ctypes.c_double * n)(*[u["lat"] for u in units])
-    lons = (ctypes.c_double * n)(*[u["lon"] for u in units])
-    return _geo.find_nearest_unit(inc_lat, inc_lon, lats, lons, n)
+    if _use_native:
+        lats = (ctypes.c_double * n)(*[u["lat"] for u in units])
+        lons = (ctypes.c_double * n)(*[u["lon"] for u in units])
+        return _geo.find_nearest_unit(inc_lat, inc_lon, lats, lons, n)
+    return _py_find_nearest(inc_lat, inc_lon,
+                            [u["lat"] for u in units],
+                            [u["lon"] for u in units])
 
 
 # Average urban speeds (km/h) for different responders in Hyderabad traffic
@@ -74,7 +125,9 @@ RESPONSE_SPEED = {
 
 
 def eta_minutes(distance_km: float, speed_kmh: float = 45.0) -> float:
-    return _geo.estimate_eta_minutes(distance_km, speed_kmh)
+    if _use_native:
+        return _geo.estimate_eta_minutes(distance_km, speed_kmh)
+    return _py_eta(distance_km, speed_kmh)
 
 
 def nearest_of_type(lat: float, lon: float, svc_type: str) -> Optional[Dict[str, Any]]:
@@ -162,21 +215,70 @@ _inc_counter = 0
 # ──────────────────────────────────────────────
 class IncidentCreate(BaseModel):
     type: str
-    location: str
+    location: str = Field(max_length=200)
     lat: float
     lon: float
-    description: str = ""
-    casualties: int = 0
-    contact: str = ""
-    photo_data_url: Optional[str] = None
-    reporter_name: str = "Anonymous"
+    description: str = Field(default="", max_length=1000)
+    casualties: int = Field(default=0, ge=0, le=10000)
+    contact: str = Field(default="", max_length=100)
+    photo_data_url: Optional[str] = None  # validated below
+    reporter_name: str = Field(default="Anonymous", max_length=80)
     reporter_role: str = "civilian"
+
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v: str) -> str:
+        if v not in CRISIS_TYPES:
+            raise ValueError(f"type must be one of {CRISIS_TYPES}")
+        return v
+
+    @field_validator("lat")
+    @classmethod
+    def validate_lat(cls, v: float) -> float:
+        if not (-90.0 <= v <= 90.0):
+            raise ValueError("lat must be between -90 and 90")
+        return v
+
+    @field_validator("lon")
+    @classmethod
+    def validate_lon(cls, v: float) -> float:
+        if not (-180.0 <= v <= 180.0):
+            raise ValueError("lon must be between -180 and 180")
+        return v
+
+    @field_validator("reporter_role")
+    @classmethod
+    def validate_role(cls, v: str) -> str:
+        if v not in ("volunteer", "civilian"):
+            return "civilian"
+        return v
+
+    @field_validator("photo_data_url")
+    @classmethod
+    def validate_photo(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and len(v) > 2_097_152:  # ~1.5 MB binary limit
+            raise ValueError("photo_data_url exceeds 2 MB limit")
+        return v
 
 
 class SOSRequest(BaseModel):
     lat: float
     lon: float
-    reporter_name: str = "Anonymous"
+    reporter_name: str = Field(default="Anonymous", max_length=80)
+
+    @field_validator("lat")
+    @classmethod
+    def validate_lat(cls, v: float) -> float:
+        if not (-90.0 <= v <= 90.0):
+            raise ValueError("lat must be between -90 and 90")
+        return v
+
+    @field_validator("lon")
+    @classmethod
+    def validate_lon(cls, v: float) -> float:
+        if not (-180.0 <= v <= 180.0):
+            raise ValueError("lon must be between -180 and 180")
+        return v
 
 
 class DispatchUnitOrder(BaseModel):
@@ -186,13 +288,13 @@ class DispatchUnitOrder(BaseModel):
 
 class DispatchRequest(BaseModel):
     orders: List[DispatchUnitOrder] = []
-    note: str = ""
-    actor_name: str = "Unknown"
+    note: str = Field(default="", max_length=500)
+    actor_name: str = Field(default="Unknown", max_length=80)
 
 
 class ResolveRequest(BaseModel):
-    actor_name: str = "Unknown"
-    note: str = ""
+    actor_name: str = Field(default="Unknown", max_length=80)
+    note: str = Field(default="", max_length=500)
 
 
 class SessionRegister(BaseModel):
@@ -310,13 +412,23 @@ def stats_snapshot() -> Dict[str, Any]:
 # ──────────────────────────────────────────────
 #  FastAPI
 # ──────────────────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 app = FastAPI(title="CrisisNexus API", version="3.0.0")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 
 @app.get("/", response_class=FileResponse)
 async def index():
-    return FileResponse("static/index.html")
+    return FileResponse(os.path.join(BASE_DIR, "static", "index.html"))
 
 
 @app.get("/api/health")
@@ -340,8 +452,6 @@ async def list_incidents(status: Optional[str] = None):
 @app.post("/api/incidents", status_code=201)
 async def create_incident(body: IncidentCreate):
     global _inc_counter
-    if body.type not in CRISIS_TYPES:
-        raise HTTPException(400, "Invalid crisis type")
     _inc_counter += 1
     sev = severity_from(body.type, body.casualties, is_sos=False)
 
@@ -568,4 +678,5 @@ async def websocket_endpoint(ws: WebSocket, name: str = "Anonymous", role: str =
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=False)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)

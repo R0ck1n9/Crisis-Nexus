@@ -1,0 +1,27 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Compiled C artifacts (re-built inside Docker)
+geo_engine.so
+geo_engine.dll
+
+# Dev/editor files
+.venv/
+.env
+*.env
+.vscode/
+.idea/
+
+# Build artifacts
+dist/
+build/
+
+# Assets folder (not needed at runtime)
+attached_assets/
+
+# Git
+.git/
+.gitignore

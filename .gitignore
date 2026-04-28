@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.dll
+.Python
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.cursor/
+.idea/
+.zed/
+.codex/
+.gemini/
+.mcp.json
+opencode.json
+config/
+
+# Package manager artifacts
+=*
+nul
+
+# Compiled C libraries
+geo_engine.so
+geo_engine.dll
