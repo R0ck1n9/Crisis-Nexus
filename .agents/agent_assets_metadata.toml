@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "ka9-LApLd7I9vqHtrOiID"
+uri = "file://CrisisNexus_Presentation_Guide.txt"
+type = "text"
+title = "CrisisNexus Presentation Guide"
