@@ -175,7 +175,14 @@ a{color:inherit;text-decoration:none;}
 .type-card .ico svg{width:24px;height:24px;}
 .type-card .lbl{font-size:12px;font-weight:500;}
 
-#picker-map{width:100%;height:300px;border-radius:8px;border:1px solid var(--line);}
+#picker-wrap{position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--line);}
+#picker-wrap.full{position:fixed;inset:0;z-index:200;border-radius:0;border:none;}
+#picker-wrap.full #picker-map{height:100vh;}
+#picker-map{width:100%;height:300px;}
+.picker-controls{position:absolute;top:10px;right:10px;z-index:600;display:flex;gap:6px;}
+.picker-controls button{width:34px;height:34px;background:rgba(10,14,24,.92);border:1px solid var(--line);color:var(--text);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+.picker-controls button:hover{background:rgba(20,30,50,1);border-color:var(--accent);}
+.picker-controls svg{width:14px;height:14px;}
 .location-bar{display:flex;gap:8px;margin-bottom:8px;}
 
 /* ─────────────── Onboarding modal ─────────────── */
@@ -588,7 +595,13 @@ body[data-role="volunteer"]{padding-bottom:42px;}
           <input id="loc-search" class="form-input" placeholder="or search a place in Hyderabad…" />
           <button type="button" class="btn btn-sm" onclick="searchLocation()">Search</button>
         </div>
-        <div id="picker-map"></div>
+        <div id="picker-wrap">
+          <div class="picker-controls">
+            <button type="button" title="Recenter" onclick="recenterPickerMap()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/></svg></button>
+            <button type="button" title="Fullscreen" onclick="togglePickerFullscreen()" id="picker-fs-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg></button>
+          </div>
+          <div id="picker-map"></div>
+        </div>
         <div style="margin-top:6px;font-family:var(--font-mono);font-size:11px;color:var(--muted);" id="loc-coords">No pin yet</div>
         <input type="text" class="form-input" id="loc-text" placeholder="Optional address / landmark" style="margin-top:8px;"/>
       </div>
@@ -691,6 +704,16 @@ body[data-role="volunteer"]{padding-bottom:42px;}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
     <div id="incident-modal-body"></div>
+  </div>
+</div>
+
+<!-- ════════════════ Audit Modal ════════════════ -->
+<div class="modal-overlay" id="audit-modal" onclick="if(event.target===this) closeAuditModal()">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeAuditModal()" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <div id="audit-modal-body"></div>
   </div>
 </div>
 
@@ -907,7 +930,6 @@ function updateAll(stats){
     document.getElementById('an-active').textContent = stats.active_incidents;
     document.getElementById('an-resolved').textContent = stats.resolved_total;
     document.getElementById('an-p1').textContent = stats.critical_p1;
-    document.getElementById('side-badge-inc').textContent = stats.active_incidents;
   }
   renderHeroList();
   renderCommandList();
@@ -921,8 +943,16 @@ function updateAll(stats){
 }
 
 function renderPresence(){
-  document.getElementById('presence-count').textContent = `${state.presence.total} ONLINE`;
-  document.getElementById('side-badge-vol').textContent = state.presence.volunteers.length;
+  // Total = unique people online (dedupe by name across tabs/devices)
+  const uniqueVol = new Set((state.presence.volunteers||[]).map(v=>v.name)).size;
+  const civ = state.presence.civilians || 0;
+  const totalUnique = uniqueVol + civ; // civilians already counted as connections; this is best-effort
+  document.getElementById('presence-count').textContent = `${totalUnique} ONLINE`;
+  document.getElementById('side-badge-vol').textContent = uniqueVol;
+  // Active incidents badge — compute locally so it always matches the visible list
+  const activeCount = state.incidents.filter(i=>i.status!=='resolved').length;
+  const incBadge = document.getElementById('side-badge-inc');
+  if(incBadge) incBadge.textContent = activeCount;
 }
 
 function renderHeroList(){
@@ -1208,11 +1238,49 @@ function renderAudit(){
   const el = document.getElementById('audit-list');
   if(!el) return;
   if(state.audit.length===0){ el.innerHTML = `<div class="empty">No audit entries yet.</div>`; return; }
-  el.innerHTML = state.audit.map(a=>`<div class="audit-item">
+  el.innerHTML = state.audit.map((a,idx)=>`<div class="audit-item" data-aidx="${idx}" style="cursor:pointer;" title="Click for full detail">
     <span class="audit-action ${a.action}">${a.action}</span>
     <span><b>${escapeHtml(a.incident_id)}</b> · ${escapeHtml(a.detail||'')} <span style="color:var(--dim);">— by ${escapeHtml(a.actor||'system')}</span></span>
     <span class="audit-time">${timeAgo(a.timestamp)}</span>
   </div>`).join('');
+  el.querySelectorAll('.audit-item').forEach(it=>it.addEventListener('click',()=>openAuditModal(parseInt(it.dataset.aidx))));
+}
+
+function openAuditModal(idx){
+  const a = state.audit[idx];
+  if(!a) return;
+  const inc = state.incidents.find(i=>i.id===a.incident_id);
+  const dt = new Date(a.timestamp);
+  const incHTML = inc ? `
+    <div style="margin-top:14px;padding:12px;background:var(--bg-3);border-radius:8px;">
+      <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Linked incident</div>
+      <div class="detail-row"><span class="k">ID</span><span class="v">${inc.id}</span></div>
+      <div class="detail-row"><span class="k">Type</span><span class="v">${escapeHtml(inc.type)} <span class="sev sev-${inc.severity}" style="margin-left:6px;">${inc.severity}</span></span></div>
+      <div class="detail-row"><span class="k">Status</span><span class="v"><span class="status-pill status-${inc.status}">${inc.status}</span></span></div>
+      <div class="detail-row"><span class="k">Location</span><span class="v">${escapeHtml(inc.location)}</span></div>
+      <div class="detail-row"><span class="k">Coordinates</span><span class="v" style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;">
+        <span style="font-family:var(--font-mono);font-size:11px;">${inc.lat.toFixed(5)}, ${inc.lon.toFixed(5)}</span>
+        ${gmapsBtn(inc.lat, inc.lon, 'Open exact location')}
+      </span></div>
+      <div class="detail-row"><span class="k">Reporter</span><span class="v">${escapeHtml(inc.reporter_name)} (${inc.reporter_role})</span></div>
+      <div class="detail-row"><span class="k">Casualties</span><span class="v">${inc.casualties}</span></div>
+      <button class="btn btn-blue" style="margin-top:10px;width:100%;justify-content:center;" onclick="closeAuditModal();openIncidentModal('${inc.id}')">Open full incident detail</button>
+    </div>` : `<div style="margin-top:14px;padding:12px;background:var(--bg-3);border-radius:8px;color:var(--muted);font-size:12px;text-align:center;">This incident has been deleted or is no longer in memory.</div>`;
+  document.getElementById('audit-modal-body').innerHTML = `
+    <h3 style="margin:0 0 14px;">Audit entry <span class="audit-action ${a.action}" style="margin-left:6px;">${a.action}</span></h3>
+    <div class="detail-row"><span class="k">Audit ID</span><span class="v" style="font-family:var(--font-mono);font-size:11px;">${a.id}</span></div>
+    <div class="detail-row"><span class="k">Action</span><span class="v">${a.action}</span></div>
+    <div class="detail-row"><span class="k">Incident</span><span class="v">${escapeHtml(a.incident_id)}</span></div>
+    <div class="detail-row"><span class="k">Actor</span><span class="v">${escapeHtml(a.actor||'system')}</span></div>
+    <div class="detail-row"><span class="k">When</span><span class="v">${dt.toLocaleString()} <span style="color:var(--muted);">(${timeAgo(a.timestamp)})</span></span></div>
+    <div class="detail-row"><span class="k">UTC timestamp</span><span class="v" style="font-family:var(--font-mono);font-size:11px;">${a.timestamp}</span></div>
+    ${a.detail ? `<div style="margin-top:10px;padding:12px;background:var(--bg-3);border-radius:8px;font-size:13px;line-height:1.6;"><b style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;">Detail</b>${escapeHtml(a.detail)}</div>` : ''}
+    ${incHTML}
+  `;
+  document.getElementById('audit-modal').classList.add('show');
+}
+function closeAuditModal(){
+  document.getElementById('audit-modal').classList.remove('show');
 }
 
 /* ============================================================
@@ -1327,6 +1395,25 @@ function initPickerMap(){
   L.tileLayer(TILE_URL, TILE_OPTS).addTo(pickerMap);
   pickerMap.on('click', e=>setPickerPin(e.latlng.lat, e.latlng.lng));
 }
+function recenterPickerMap(){ if(pickerMap) pickerMap.setView(HYD, 12, {animate:true}); }
+function togglePickerFullscreen(){
+  const w = document.getElementById('picker-wrap');
+  if(!w) return;
+  w.classList.toggle('full');
+  setTimeout(()=>{ if(pickerMap) pickerMap.invalidateSize(); },250);
+}
+// ESC closes picker fullscreen
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    const w = document.getElementById('picker-wrap');
+    if(w && w.classList.contains('full')) togglePickerFullscreen();
+    if(state.modalIncidentId) closeIncidentModal();
+    const lb = document.getElementById('lightbox');
+    if(lb && lb.classList.contains('show')) closeLightbox();
+    const am = document.getElementById('audit-modal');
+    if(am && am.classList.contains('show')) closeAuditModal();
+  }
+});
 function setPickerPin(lat, lon){
   if(!pickerMap) return;
   if(pickerMarker) pickerMap.removeLayer(pickerMarker);
