@@ -238,12 +238,65 @@ a{color:inherit;text-decoration:none;}
 /* ─────────────── Detail panel ─────────────── */
 .detail-panel{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius);padding:20px;}
 .detail-panel.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:50px 20px;}
-.detail-photo{width:100%;border-radius:10px;margin-bottom:14px;max-height:220px;object-fit:cover;border:1px solid var(--line);}
-.detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;}
+.detail-photo{width:100%;border-radius:10px;margin-bottom:14px;max-height:260px;object-fit:cover;border:1px solid var(--line);cursor:zoom-in;}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;gap:10px;}
 .detail-row:last-of-type{border-bottom:none;}
-.detail-row .k{color:var(--muted);}
+.detail-row .k{color:var(--muted);flex-shrink:0;}
 .detail-row .v{font-weight:500;text-align:right;}
 .detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+.gmaps-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.35);color:#60A5FA;font-size:11px;font-family:var(--font-mono);border-radius:6px;text-decoration:none;cursor:pointer;transition:all .15s;}
+.gmaps-btn:hover{background:rgba(59,130,246,.22);border-color:#60A5FA;}
+.gmaps-btn svg{width:11px;height:11px;}
+
+/* Dispatch panel */
+.dispatch-panel{margin-top:16px;padding:14px;background:var(--bg-3);border:1px solid var(--line);border-radius:10px;}
+.dispatch-panel h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 12px;font-family:var(--font-mono);}
+.dispatch-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.dispatch-unit{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;transition:all .15s;}
+.dispatch-unit.has-count{border-color:rgba(96,165,250,.5);background:rgba(59,130,246,.06);}
+.dispatch-unit .du-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+.dispatch-unit .du-icon.police{background:#3B82F6;}
+.dispatch-unit .du-icon.fire{background:#DC2626;}
+.dispatch-unit .du-icon.ambulance{background:#F59E0B;}
+.dispatch-unit .du-icon.hospital{background:#10B981;}
+.dispatch-unit .du-icon svg{width:18px;height:18px;}
+.dispatch-unit .du-info{flex:1;min-width:0;}
+.dispatch-unit .du-label{font-weight:600;font-size:12px;}
+.dispatch-unit .du-meta{font-size:10px;color:var(--muted);font-family:var(--font-mono);margin-top:1px;}
+.dispatch-unit select{background:var(--bg);border:1px solid var(--line);color:var(--text);padding:4px 6px;border-radius:5px;font-family:var(--font-mono);font-size:12px;width:46px;cursor:pointer;}
+.dispatch-summary{margin-top:10px;padding:10px;background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.25);border-radius:6px;font-size:11px;color:#93C5FD;font-family:var(--font-mono);line-height:1.5;display:none;}
+.dispatch-summary.show{display:block;}
+
+/* Dispatched resources display */
+.resources-list{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.res-item{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--bg-3);border:1px solid var(--line);border-radius:8px;font-size:12px;}
+.res-item .res-icon{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+.res-item .res-icon.police{background:#3B82F6;}
+.res-item .res-icon.fire{background:#DC2626;}
+.res-item .res-icon.ambulance{background:#F59E0B;}
+.res-item .res-icon.hospital{background:#10B981;}
+.res-item .res-icon svg{width:14px;height:14px;}
+.res-item .res-body{flex:1;min-width:0;}
+.res-item .res-title{font-weight:600;font-size:12px;}
+.res-item .res-station{color:var(--muted);font-size:11px;margin-top:1px;}
+.res-item .res-eta{font-family:var(--font-mono);font-size:11px;text-align:right;flex-shrink:0;}
+.res-item .res-eta .km{color:var(--muted);display:block;font-size:10px;}
+.res-item .res-eta .min{color:#34D399;font-weight:700;}
+.status-en_route{background:rgba(96,165,250,.18);color:#60A5FA;}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:30px 20px;overflow-y:auto;}
+.modal-overlay.show{display:flex;}
+.modal-card{background:var(--bg-2);border:1px solid var(--line);border-radius:14px;max-width:680px;width:100%;padding:24px;position:relative;box-shadow:0 30px 60px rgba(0,0,0,.6);}
+.modal-close{position:absolute;top:14px;right:14px;width:32px;height:32px;background:var(--bg-3);border:1px solid var(--line);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);}
+.modal-close:hover{color:var(--text);background:var(--bg);}
+.modal-close svg{width:14px;height:14px;}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;display:none;align-items:center;justify-content:center;padding:30px;cursor:zoom-out;}
+.lightbox.show{display:flex;}
+.lightbox img{max-width:100%;max-height:100%;border-radius:8px;}
+
+/* Photo thumb in incident list */
+.inc-thumb{width:46px;height:46px;border-radius:6px;object-fit:cover;border:1px solid var(--line);flex-shrink:0;}
 
 /* ─────────────── Chips / pills ─────────────── */
 .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
@@ -602,6 +655,21 @@ body[data-role="volunteer"]{padding-bottom:42px;}
   </div>
 </section>
 
+<!-- ════════════════ Modal (incident detail) ════════════════ -->
+<div class="modal-overlay" id="incident-modal" onclick="if(event.target===this) closeIncidentModal()">
+  <div class="modal-card" id="incident-modal-card">
+    <button class="modal-close" onclick="closeIncidentModal()" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <div id="incident-modal-body"></div>
+  </div>
+</div>
+
+<!-- ════════════════ Lightbox ════════════════ -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" alt=""/>
+</div>
+
 <!-- ════════════════ Ticker ════════════════ -->
 <div class="ticker hidden" id="ticker-bar">
   <div class="ticker-pill">LIVE</div>
@@ -622,6 +690,7 @@ const state = {
   presence: {volunteers:[], civilians:0, total:0},
   filter: 'all',
   selectedId: null,
+  modalIncidentId: null,
   serviceLayerVisible: true,
 };
 
@@ -754,7 +823,11 @@ function handleMsg(m){
     state.incidents = state.incidents.map(i=>i.id===m.incident.id ? m.incident : i);
     sortIncidents();
     updateAll(m.stats);
-    toast('info','Incident dispatched',`${m.incident.id} — ${m.incident.dispatched_units.join(', ')||'units'}`);
+    {
+      const totalU = (m.incident.dispatched_resources||[]).reduce((s,r)=>s+r.count,0);
+      const summary = (m.incident.dispatched_resources||[]).map(r=>`${r.count}× ${r.type}`).join(', ');
+      toast('info','Units dispatched',`${m.incident.id} — ${totalU} responder${totalU>1?'s':''} (${summary})`);
+    }
   } else if(m.type==='incident_resolved'){
     state.incidents = state.incidents.map(i=>i.id===m.incident.id ? m.incident : i);
     sortIncidents();
@@ -862,10 +935,10 @@ function renderReportsList(){
   if(!el) return;
   const items = state.incidents.filter(i=>i.status!=='resolved');
   if(items.length===0){ el.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4M21 12c0 5-4 9-9 9s-9-4-9-9 4-9 9-9 9 4 9 9z"/></svg><h4>All clear</h4><p>No active reports right now.</p></div>`; return; }
-  el.innerHTML = items.map(i=>incHTML(i,false,false,true)).join('');
+  el.innerHTML = items.map(i=>incHTML(i,false,false,true,true)).join('');
   el.querySelectorAll('.inc-item').forEach(it=>it.addEventListener('click',(e)=>{
     if(e.target.closest('.inc-actions')) return;
-    selectIncident(it.dataset.id); goPage('command');
+    openIncidentModal(it.dataset.id);
   }));
   el.querySelectorAll('[data-act-delete]').forEach(b=>b.addEventListener('click',(e)=>{
     e.stopPropagation();
@@ -876,7 +949,7 @@ function renderReportsList(){
   }));
 }
 
-function incHTML(i, compact=false, selected=false, withActions=false){
+function incHTML(i, compact=false, selected=false, withActions=false, showThumb=false){
   const ico = TYPE_ICON[i.type] || TYPE_ICON.Other;
   const eta = i.suggested_unit ? `${i.suggested_unit.eta_min} min ETA · ${i.suggested_unit.distance_km} km` : '';
   const time = timeAgo(i.timestamp);
@@ -885,8 +958,11 @@ function incHTML(i, compact=false, selected=false, withActions=false){
       <button class="btn btn-emerald btn-sm" data-act-resolve="${i.id}">Resolve</button>
       <button class="btn btn-danger btn-sm" data-act-delete="${i.id}">Delete</button>
     </div>` : '';
+  const thumb = showThumb && i.photo_data_url ? `<img src="${i.photo_data_url}" class="inc-thumb" alt="">` : '';
+  const dispCount = (i.dispatched_resources||[]).reduce((s,r)=>s+r.count,0);
+  const dispNote = dispCount>0 ? `<span style="color:#60A5FA;">→ ${dispCount} unit${dispCount>1?'s':''} en route</span>` : '';
   return `<div class="inc-item ${selected?'selected':''}" data-id="${i.id}">
-    <div class="inc-icon">${ico}</div>
+    ${thumb || `<div class="inc-icon">${ico}</div>`}
     <div class="inc-body">
       <div class="inc-row1">
         <span class="sev sev-${i.severity}">${i.severity}</span>
@@ -898,11 +974,112 @@ function incHTML(i, compact=false, selected=false, withActions=false){
         <span>${i.id}</span>
         <span>by ${escapeHtml(i.reporter_name)}</span>
         <span>${time}</span>
-        ${eta?`<span>→ ${escapeHtml(i.suggested_unit.name)} · ${eta}</span>`:''}
+        ${dispNote || (eta?`<span>→ ${escapeHtml(i.suggested_unit.name)} · ${eta}</span>`:'')}
       </div>
     </div>
     ${actions}
   </div>`;
+}
+
+/* ─── shared SVG icons for unit types ─── */
+const UNIT_ICONS = {
+  police:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/></svg>`,
+  fire:      `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2s5 4 5 10a5 5 0 01-10 0c0-2 1-3 1-3s0 2 2 2c0-3-1-5 2-9z"/></svg>`,
+  ambulance: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="14" height="10" rx="1"/><path d="M16 10h4l2 3v4h-6"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M9 10v4M7 12h4"/></svg>`,
+  hospital:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5 2 7.5L12 16l-6.5 5 2-7.5L2 9h7z"/></svg>`,
+};
+const UNIT_LABEL = { police:"Police", fire:"Fire Truck", ambulance:"Ambulance", hospital:"Hospital Team" };
+
+function gmapsBtn(lat, lon, label="View on Google Maps"){
+  const u = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+  return `<a class="gmaps-btn" href="${u}" target="_blank" rel="noopener" title="${label}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Google Maps
+  </a>`;
+}
+
+function gmapsDirBtn(fromLat, fromLon, toLat, toLon){
+  const u = `https://www.google.com/maps/dir/?api=1&origin=${fromLat},${fromLon}&destination=${toLat},${toLon}&travelmode=driving`;
+  return `<a class="gmaps-btn" href="${u}" target="_blank" rel="noopener" title="Route">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h11l-3-3M3 12l3 3M21 6v12"/></svg>
+    Route
+  </a>`;
+}
+
+function buildDetailHTML(inc){
+  const isVol = state.user.role==='volunteer';
+  const sug = inc.suggested_unit;
+  const photo = inc.photo_data_url ? `<img src="${inc.photo_data_url}" class="detail-photo" alt="incident photo" onclick="openLightbox('${inc.id}')">` : '';
+  const resources = (inc.dispatched_resources && inc.dispatched_resources.length) ? `
+    <div class="resources-list">
+      ${inc.dispatched_resources.map(r=>`
+        <div class="res-item">
+          <div class="res-icon ${r.type}">${UNIT_ICONS[r.type]||''}</div>
+          <div class="res-body">
+            <div class="res-title">${r.count}× ${UNIT_LABEL[r.type]||r.type} <span class="status-pill status-en_route" style="margin-left:6px;font-size:9px;">EN ROUTE</span></div>
+            <div class="res-station">from ${escapeHtml(r.station_name)}</div>
+          </div>
+          <div class="res-eta">
+            <span class="min">ETA ${r.eta_min} min</span>
+            <span class="km">${r.distance_km} km away</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin:-2px 0 4px 36px;">
+          ${gmapsBtn(r.station_lat, r.station_lon, 'Station on Google Maps')}
+          ${gmapsDirBtn(r.station_lat, r.station_lon, inc.lat, inc.lon)}
+        </div>
+      `).join('')}
+    </div>` : `<div style="padding:10px;color:var(--muted);font-size:12px;text-align:center;">No units dispatched yet.</div>`;
+
+  const nbt = inc.nearest_by_type || {};
+  const dispatchUI = isVol && inc.status!=='resolved' ? `
+    <div class="dispatch-panel">
+      <h4>Dispatch responders</h4>
+      <div class="dispatch-grid">
+        ${['police','fire','ambulance','hospital'].map(t=>{
+          const info = nbt[t];
+          return `<div class="dispatch-unit" data-unit="${t}">
+            <div class="du-icon ${t}">${UNIT_ICONS[t]}</div>
+            <div class="du-info">
+              <div class="du-label">${UNIT_LABEL[t]}</div>
+              <div class="du-meta">${info?`${info.distance_km}km · ${info.eta_min}min`:'no station'}</div>
+            </div>
+            <select data-dispatch-type="${t}" onchange="updateDispatchUI()">
+              ${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n}</option>`).join('')}
+            </select>
+          </div>`;
+        }).join('')}
+      </div>
+      <input id="dispatch-note" class="form-input" placeholder="Optional note (e.g. heavy traffic, send via outer ring road)" style="margin-top:10px;font-size:12px;"/>
+      <div class="dispatch-summary" id="dispatch-summary"></div>
+      <div class="detail-actions">
+        <button class="btn btn-blue" onclick="dispatchIncident('${inc.id}')">Confirm Dispatch</button>
+        <button class="btn btn-emerald" onclick="resolveIncident('${inc.id}')">Mark Resolved</button>
+        <button class="btn btn-danger" onclick="if(confirm('Delete this report?')) deleteIncident('${inc.id}')">Delete</button>
+      </div>
+    </div>` : '';
+
+  return `
+    ${photo}
+    <h3 style="margin:0 0 10px;">${escapeHtml(inc.type)} <span class="sev sev-${inc.severity}">${inc.severity}</span></h3>
+    <div class="detail-row"><span class="k">ID</span><span class="v">${inc.id}</span></div>
+    <div class="detail-row"><span class="k">Status</span><span class="v"><span class="status-pill status-${inc.status}">${inc.status}</span></span></div>
+    <div class="detail-row"><span class="k">Location</span><span class="v">${escapeHtml(inc.location)}</span></div>
+    <div class="detail-row"><span class="k">Coordinates</span><span class="v" style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;">
+      <span style="font-family:var(--font-mono);font-size:11px;">${inc.lat.toFixed(5)}, ${inc.lon.toFixed(5)}</span>
+      ${gmapsBtn(inc.lat, inc.lon, 'Open exact location')}
+    </span></div>
+    <div class="detail-row"><span class="k">Reporter</span><span class="v">${escapeHtml(inc.reporter_name)} <span style="color:var(--muted);">(${inc.reporter_role})</span></span></div>
+    ${inc.contact?`<div class="detail-row"><span class="k">Contact</span><span class="v">${escapeHtml(inc.contact)}</span></div>`:''}
+    <div class="detail-row"><span class="k">Casualties</span><span class="v">${inc.casualties}</span></div>
+    <div class="detail-row"><span class="k">Reported</span><span class="v">${timeAgo(inc.timestamp)}</span></div>
+    ${sug?`<div class="detail-row"><span class="k">Nearest unit</span><span class="v">${escapeHtml(sug.name)} <span style="color:var(--muted);">(${sug.distance_km}km · ${sug.eta_min}min)</span></span></div>`:''}
+    ${inc.dispatch_note?`<div class="detail-row"><span class="k">Note</span><span class="v">${escapeHtml(inc.dispatch_note)}</span></div>`:''}
+    ${inc.description?`<div style="margin-top:14px;padding:12px;background:var(--bg-3);border-radius:8px;font-size:13px;line-height:1.6;">${escapeHtml(inc.description)}</div>`:''}
+    <h4 style="margin:18px 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:var(--font-mono);">Dispatched Units</h4>
+    ${resources}
+    ${dispatchUI}
+  `;
 }
 
 function renderDetail(){
@@ -915,38 +1092,52 @@ function renderDetail(){
     return;
   }
   el.className='detail-panel';
-  const isVol = state.user.role==='volunteer';
-  const sug = inc.suggested_unit;
-  const photo = inc.photo_data_url ? `<img src="${inc.photo_data_url}" class="detail-photo" alt="">` : '';
-  const dispatched = inc.dispatched_units.length ? inc.dispatched_units.join(', ') : '—';
-  const dispatchUI = isVol && inc.status!=='resolved' ? `
-    <div class="form-group" style="margin-top:14px;">
-      <label class="form-label">Dispatch units (e.g. AMB-01, FIRE-02)</label>
-      <input id="dispatch-units" class="form-input" placeholder="Comma-separated unit IDs or names" value="${escapeHtml(inc.dispatched_units.join(', '))}"/>
-      <input id="dispatch-note" class="form-input" placeholder="Note (e.g. 2 ambulances + 1 fire team)" style="margin-top:6px;"/>
-    </div>
-    <div class="detail-actions">
-      <button class="btn btn-blue" onclick="dispatchIncident('${inc.id}')">Mark Dispatched</button>
-      <button class="btn btn-emerald" onclick="resolveIncident('${inc.id}')">Mark Resolved</button>
-      <button class="btn btn-danger" onclick="if(confirm('Delete this report?')) deleteIncident('${inc.id}')">Delete</button>
-    </div>` : '';
-  el.innerHTML = `
-    ${photo}
-    <h3>${escapeHtml(inc.type)} <span class="sev sev-${inc.severity}">${inc.severity}</span></h3>
-    <div class="detail-row"><span class="k">ID</span><span class="v">${inc.id}</span></div>
-    <div class="detail-row"><span class="k">Status</span><span class="v"><span class="status-pill status-${inc.status}">${inc.status}</span></span></div>
-    <div class="detail-row"><span class="k">Location</span><span class="v">${escapeHtml(inc.location)}</span></div>
-    <div class="detail-row"><span class="k">Coords</span><span class="v" style="font-family:var(--font-mono);font-size:11px;">${inc.lat.toFixed(5)}, ${inc.lon.toFixed(5)}</span></div>
-    <div class="detail-row"><span class="k">Reporter</span><span class="v">${escapeHtml(inc.reporter_name)} (${inc.reporter_role})</span></div>
-    ${inc.contact?`<div class="detail-row"><span class="k">Contact</span><span class="v">${escapeHtml(inc.contact)}</span></div>`:''}
-    <div class="detail-row"><span class="k">Casualties</span><span class="v">${inc.casualties}</span></div>
-    <div class="detail-row"><span class="k">Reported</span><span class="v">${timeAgo(inc.timestamp)}</span></div>
-    ${sug?`<div class="detail-row"><span class="k">Nearest unit</span><span class="v">${escapeHtml(sug.name)} (${sug.distance_km} km · ${sug.eta_min} min)</span></div>`:''}
-    <div class="detail-row"><span class="k">Dispatched</span><span class="v">${escapeHtml(dispatched)}</span></div>
-    ${inc.dispatch_note?`<div class="detail-row"><span class="k">Note</span><span class="v">${escapeHtml(inc.dispatch_note)}</span></div>`:''}
-    ${inc.description?`<div style="margin-top:14px;padding:12px;background:var(--bg-3);border-radius:8px;font-size:13px;line-height:1.6;">${escapeHtml(inc.description)}</div>`:''}
-    ${dispatchUI}
-  `;
+  el.innerHTML = buildDetailHTML(inc);
+  updateDispatchUI();
+}
+
+function openIncidentModal(id){
+  const inc = state.incidents.find(i=>i.id===id);
+  if(!inc) return;
+  state.modalIncidentId = id;
+  document.getElementById('incident-modal-body').innerHTML = buildDetailHTML(inc);
+  document.getElementById('incident-modal').classList.add('show');
+  updateDispatchUI();
+}
+function closeIncidentModal(){
+  state.modalIncidentId = null;
+  document.getElementById('incident-modal').classList.remove('show');
+}
+function openLightbox(id){
+  const inc = state.incidents.find(i=>i.id===id);
+  if(!inc || !inc.photo_data_url) return;
+  document.getElementById('lightbox-img').src = inc.photo_data_url;
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('show'); }
+
+function updateDispatchUI(){
+  // Highlight selected unit cards and show summary
+  let total = 0;
+  const lines = [];
+  document.querySelectorAll('[data-dispatch-type]').forEach(sel=>{
+    const n = parseInt(sel.value)||0;
+    const card = sel.closest('.dispatch-unit');
+    if(card) card.classList.toggle('has-count', n>0);
+    if(n>0){
+      const t = sel.dataset.dispatchType;
+      total += n;
+      const inc = state.incidents.find(i=>i.id===(state.modalIncidentId||state.selectedId));
+      const info = inc && inc.nearest_by_type ? inc.nearest_by_type[t] : null;
+      if(info) lines.push(`${n}× ${UNIT_LABEL[t]} → ${info.name} · ${info.distance_km}km · ETA ${info.eta_min}min`);
+      else lines.push(`${n}× ${UNIT_LABEL[t]}`);
+    }
+  });
+  const sum = document.getElementById('dispatch-summary');
+  if(sum){
+    if(total>0){ sum.classList.add('show'); sum.innerHTML = lines.join('<br/>'); }
+    else { sum.classList.remove('show'); sum.innerHTML=''; }
+  }
 }
 
 function selectIncident(id){
@@ -1074,8 +1265,16 @@ function renderMapMarkers(){
       iconSize:[34,34],
       html:`<div class="inc-marker ${i.severity}">${i.severity}</div>`
     });
+    const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${i.lat},${i.lon}`;
+    const popupHtml = `<div style="font-family:inherit;min-width:180px;">
+        <b>${i.type}</b> <span style="color:#dc2626;font-weight:700;">${i.severity}</span><br/>
+        ${escapeHtml(i.location)}<br/>
+        <small style="color:#666;">${i.id}</small><br/>
+        <a href="${gmapsUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;padding:4px 8px;background:#3B82F6;color:#fff;border-radius:4px;text-decoration:none;font-size:11px;">Open in Google Maps</a>
+        <button onclick="openIncidentModal('${i.id}')" style="margin-top:6px;margin-left:4px;padding:4px 8px;background:#1f2937;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;">Full details</button>
+      </div>`;
     const m = L.marker([i.lat,i.lon],{icon}).addTo(cmdMap)
-      .bindPopup(`<b>${i.type}</b><br/>${i.location}<br/><small>${i.id} · ${i.severity}</small>`)
+      .bindPopup(popupHtml)
       .on('click',()=>selectIncident(i.id));
     cmdMarkers[i.id] = m;
   });
@@ -1229,12 +1428,26 @@ function updateVoiceUI(){
    ACTIONS
    ============================================================ */
 async function dispatchIncident(id){
-  const units = document.getElementById('dispatch-units').value.split(',').map(s=>s.trim()).filter(Boolean);
-  const note = document.getElementById('dispatch-note').value.trim();
-  await fetch(`/api/incidents/${id}/dispatch`, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({units, note, actor_name: state.user.name})
+  const orders = [];
+  document.querySelectorAll('[data-dispatch-type]').forEach(sel=>{
+    const n = parseInt(sel.value)||0;
+    if(n>0) orders.push({type: sel.dataset.dispatchType, count: n});
   });
+  if(orders.length===0){
+    toast('warn','Pick at least one unit','Use the dropdowns to select how many police, fire trucks, or ambulances to send.');
+    return;
+  }
+  const noteEl = document.getElementById('dispatch-note');
+  const note = noteEl ? noteEl.value.trim() : '';
+  try{
+    const r = await fetch(`/api/incidents/${id}/dispatch`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({orders, note, actor_name: state.user.name})
+    });
+    if(!r.ok) throw new Error(await r.text());
+    const total = orders.reduce((s,o)=>s+o.count,0);
+    toast('ok','Units dispatched',`${total} responder${total>1?'s':''} en route to ${id}`);
+  }catch(e){ toast('crit','Dispatch failed', e.message); }
 }
 async function resolveIncident(id){
   await fetch(`/api/incidents/${id}/resolve`, {
@@ -1284,7 +1497,10 @@ function addTickerEvent(m){
   let txt=null;
   if(m.type==='new_incident') txt = `New ${m.incident.type} in ${m.incident.location} (${m.incident.severity}) by ${m.incident.reporter_name}`;
   else if(m.type==='sos') txt = `SOS from ${m.incident.reporter_name} at ${m.incident.lat.toFixed(3)}, ${m.incident.lon.toFixed(3)}`;
-  else if(m.type==='incident_update') txt = `${m.incident.id} dispatched: ${m.incident.dispatched_units.join(', ')||'units'}`;
+  else if(m.type==='incident_update'){
+    const totalU = (m.incident.dispatched_resources||[]).reduce((s,r)=>s+r.count,0);
+    txt = `${m.incident.id} dispatched: ${totalU} responder${totalU===1?'':'s'} en route`;
+  }
   else if(m.type==='incident_resolved') txt = `${m.incident.id} resolved by ${m.incident.resolved_by}`;
   else if(m.type==='incident_deleted') txt = `${m.id} removed from active reports`;
   if(!txt) return;

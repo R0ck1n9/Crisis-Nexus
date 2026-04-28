@@ -64,8 +64,49 @@ def find_nearest(inc_lat: float, inc_lon: float, units: list) -> int:
     return _geo.find_nearest_unit(inc_lat, inc_lon, lats, lons, n)
 
 
+# Average urban speeds (km/h) for different responders in Hyderabad traffic
+RESPONSE_SPEED = {
+    "police": 55.0,      # patrol cars are quick on sirens
+    "ambulance": 50.0,   # 108 with sirens
+    "fire": 40.0,        # heavier vehicles, slower
+    "hospital": 45.0,
+}
+
+
 def eta_minutes(distance_km: float, speed_kmh: float = 45.0) -> float:
     return _geo.estimate_eta_minutes(distance_km, speed_kmh)
+
+
+def nearest_of_type(lat: float, lon: float, svc_type: str) -> Optional[Dict[str, Any]]:
+    """Return the nearest service of the given type with distance and ETA."""
+    pool = [s for s in EMERGENCY_SERVICES if s["type"] == svc_type]
+    if not pool:
+        return None
+    idx = find_nearest(lat, lon, pool)
+    if idx < 0:
+        return None
+    s = pool[idx]
+    dist = haversine_km(lat, lon, s["lat"], s["lon"])
+    speed = RESPONSE_SPEED.get(svc_type, 45.0)
+    return {
+        "id": s["id"],
+        "name": s["name"],
+        "type": s["type"],
+        "lat": s["lat"],
+        "lon": s["lon"],
+        "distance_km": round(dist, 2),
+        "eta_min": round(eta_minutes(dist, speed), 1),
+        "speed_kmh": speed,
+    }
+
+
+def nearest_by_all_types(lat: float, lon: float) -> Dict[str, Any]:
+    return {
+        "police":    nearest_of_type(lat, lon, "police"),
+        "fire":      nearest_of_type(lat, lon, "fire"),
+        "ambulance": nearest_of_type(lat, lon, "ambulance"),
+        "hospital":  nearest_of_type(lat, lon, "hospital"),
+    }
 
 
 def _ts() -> str:
@@ -138,8 +179,13 @@ class SOSRequest(BaseModel):
     reporter_name: str = "Anonymous"
 
 
+class DispatchUnitOrder(BaseModel):
+    type: str  # 'police' | 'fire' | 'ambulance' | 'hospital'
+    count: int = 1
+
+
 class DispatchRequest(BaseModel):
-    units: List[str] = []
+    orders: List[DispatchUnitOrder] = []
     note: str = ""
     actor_name: str = "Unknown"
 
@@ -322,9 +368,10 @@ async def create_incident(body: IncidentCreate):
         "reporter_name": body.reporter_name,
         "reporter_role": body.reporter_role,
         "status": "active",   # active -> dispatched -> resolved
-        "dispatched_units": [],
+        "dispatched_resources": [],
         "dispatch_note": "",
         "suggested_unit": suggested,
+        "nearest_by_type": nearest_by_all_types(body.lat, body.lon),
         "is_sos": False,
         "timestamp": _ts(),
         "resolved_at": None,
@@ -364,9 +411,10 @@ async def sos(body: SOSRequest):
         "reporter_name": body.reporter_name,
         "reporter_role": "civilian",
         "status": "active",
-        "dispatched_units": [],
+        "dispatched_resources": [],
         "dispatch_note": "",
         "suggested_unit": suggested,
+        "nearest_by_type": nearest_by_all_types(body.lat, body.lon),
         "is_sos": True,
         "timestamp": _ts(),
         "resolved_at": None,
@@ -394,11 +442,43 @@ async def dispatch(incident_id: str, body: DispatchRequest):
         raise HTTPException(404, "Incident not found")
     if inc["status"] == "resolved":
         raise HTTPException(400, "Already resolved")
+
+    valid_types = {"police", "fire", "ambulance", "hospital"}
+    resources: List[Dict[str, Any]] = []
+    summary_parts: List[str] = []
+    for order in body.orders:
+        t = order.type.lower().strip()
+        if t not in valid_types:
+            continue
+        n = max(0, min(int(order.count), 10))
+        if n <= 0:
+            continue
+        nearest = nearest_of_type(inc["lat"], inc["lon"], t)
+        if not nearest:
+            continue
+        resources.append({
+            "type": t,
+            "count": n,
+            "station_id": nearest["id"],
+            "station_name": nearest["name"],
+            "station_lat": nearest["lat"],
+            "station_lon": nearest["lon"],
+            "distance_km": nearest["distance_km"],
+            "eta_min": nearest["eta_min"],
+            "speed_kmh": nearest["speed_kmh"],
+            "status": "en_route",
+            "dispatched_at": _ts(),
+        })
+        summary_parts.append(f"{n}× {t} from {nearest['name']} (ETA {nearest['eta_min']}m)")
+
+    if not resources:
+        raise HTTPException(400, "No valid units selected")
+
     inc["status"] = "dispatched"
-    inc["dispatched_units"] = body.units
+    inc["dispatched_resources"] = resources
     inc["dispatch_note"] = body.note
     add_audit("dispatched", incident_id, body.actor_name,
-              f"Units: {', '.join(body.units) or 'none'} | {body.note}")
+              " | ".join(summary_parts) + (f" — {body.note}" if body.note else ""))
     await manager.broadcast({"type": "incident_update", "incident": inc, "stats": stats_snapshot(), "ts": _ts()})
     return {"incident": inc}
 
